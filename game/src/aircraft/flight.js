@@ -173,10 +173,12 @@ export function createFlight(initial = {}) {
     state.position.addScaledVector(a.fwd, state.speed * dt);
     state.position.y = WORLD.runway.elevation + 1.55;
 
-    if (controls.pitch > 0.35 && state.speed > AIRCRAFT.stallSpeed + 4) {
+    // Rotate on the stick, or let the aeroplane unstick itself once it has flying speed.
+    const rotate = controls.pitch > 0.28 || (state.speed > 42 && controls.pitch > -0.4);
+    if (rotate && state.speed > AIRCRAFT.stallSpeed + 5) {
       state.onGround = false;
-      state.position.y += 1.4;
-      tmpQ.setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.14);
+      state.position.y += 1.5;
+      tmpQ.setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.16);
       state.quaternion.multiply(tmpQ);
     }
   }

@@ -400,6 +400,18 @@ export function createHud(canvas) {
       wy += 21 * s;
     }
 
+    if (state.groundPrompt) {
+      g.textAlign = 'center';
+      g.fillStyle = 'rgba(10,16,18,0.62)';
+      const text = state.groundPrompt.text;
+      g.font = `700 ${11 * s}px "SF Mono", Consolas, monospace`;
+      const tw = g.measureText(text).width + 34 * s;
+      roundRect(g, cx - tw / 2, H - 238 * s, tw, 30 * s, 4);
+      g.fill();
+      g.fillStyle = state.groundPrompt.color;
+      g.fillText(text, cx, H - 218 * s);
+    }
+
     // First seconds of a sortie: show which keys the game is actually seeing.
     if (state.keys) {
       const held = new Set(state.keys);

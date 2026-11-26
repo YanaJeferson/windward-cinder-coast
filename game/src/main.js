@@ -83,7 +83,7 @@ const input = createInput(sceneCanvas);
 sceneCanvas.focus();
 
 let screen = SCREENS.TITLE;
-let selected = 2;
+let selected = 1;
 let mission = null;
 let activeGroup = null;
 let activeGates = [];
@@ -139,7 +139,7 @@ function beginMission(index) {
   const s = def.start;
   flight.state.position.set(s.x, s.y, s.z);
   flight.state.speed = s.speed;
-  flight.state.throttle = s.ground ? 0 : 0.68;
+  flight.state.throttle = s.throttle ?? (s.ground ? 0.9 : 0.68);
   flight.state.fuel = s.fuel;
   flight.state.damage = 0;
   flight.state.gearDown = Boolean(s.gear);
@@ -275,11 +275,20 @@ function activeGateScreen() {
   return { x: onScreen ? x : (x < 0 ? 44 : window.innerWidth - 44), y: onScreen ? y : (y < 0 ? 80 : window.innerHeight - 120), distance: d, offscreen: !onScreen };
 }
 
+function groundPrompt() {
+  const f = flight.state;
+  if (!f.onGround || screen !== SCREENS.FLY) return null;
+  const kt = speedKts(f);
+  if (f.throttle < 0.75) return { text: `HOLD SHIFT FOR POWER · ${Math.round(kt)} KT`, color: PALETTE.amber };
+  if (kt < 58) return { text: `TAKEOFF · PULL S / ↓ TO ROTATE · ${Math.round(kt)} KT`, color: PALETTE.cream };
+  return { text: 'ROTATE · PULL S / ↓', color: PALETTE.amber };
+}
+
 function warnings() {
   const out = [];
   const f = flight.state;
   if (f.stall) out.push({ text: 'STALL', color: PALETTE.warning });
-  else if (f.speed < AIRCRAFT.stallSpeed + 6) out.push({ text: 'LOW SPEED', color: PALETTE.amber });
+  else if (!f.onGround && f.speed < AIRCRAFT.stallSpeed + 6) out.push({ text: 'LOW SPEED', color: PALETTE.amber });
   const ground = sampleHeight(f.position.x, f.position.z);
   if (!f.onGround && f.position.y - ground < 45 && f.vertical < -6) out.push({ text: 'TERRAIN', color: PALETTE.warning });
   if (f.fuel < 18) out.push({ text: 'FUEL LOW', color: PALETTE.amber });
@@ -341,6 +350,7 @@ function renderFrame(dt) {
         warnings: warnings(),
         radio: mission?.radio,
         wind: mission?.wind,
+        groundPrompt: groundPrompt(),
         keys: elapsed < 10 || showHelp ? input.activeKeys() : null,
       });
     } else {

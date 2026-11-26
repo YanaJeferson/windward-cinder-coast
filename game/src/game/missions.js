@@ -16,9 +16,9 @@ export function createMissions() {
       id: 'free-flight',
       name: 'Free Flight',
       kind: 'free',
-      objective: 'Explore the coast. Land back on 36.',
-      brief: 'No clock, no gates, no cargo. Take the Petrel up and learn the coast: the canyon, the volcano, the stacks and the strip. Come back and put her down on 36 when you have had enough.',
-      start: { x: -20, y: 240, z: 2050, heading: 0, speed: 58, fuel: 100 },
+      objective: 'Take off, explore, land back on 36.',
+      brief: 'No clock, no gates, no cargo. Start on runway 36 with the engine running, take the Petrel up and learn the coast: the canyon, the volcano, the stacks and the strip. Come back and put her down on 36 when you have had enough. Hold Shift for full power and pull S/↓ to rotate.',
+      start: { x: 0, y: WORLD.runway.elevation + 1.55, z: 420, heading: 0, speed: 0, fuel: 100, ground: true, gear: true, throttle: 1 },
       timeLimit: null,
       landing: true,
       weather: 'clear',
@@ -34,7 +34,7 @@ export function createMissions() {
       kind: 'training',
       objective: 'Take off, fly the circuit, land on 36',
       brief: 'A checkout flight with the chief pilot watching from the shed. Take off from 36, fly the three circuit rings and bring her back for a full-stop landing. Throttle up, keep the ball centred.',
-      start: { x: 0, y: WORLD.runway.elevation + 1.55, z: 260, heading: 0, speed: 0, fuel: 70, ground: true, gear: true },
+      start: { x: 0, y: WORLD.runway.elevation + 1.55, z: 420, heading: 0, speed: 0, fuel: 70, ground: true, gear: true, throttle: 1 },
       timeLimit: 420,
       landing: true,
       weather: 'clear',
@@ -206,6 +206,7 @@ export function createMissionState(def) {
     elapsed: 0,
     complete: false,
     failed: false,
+    airborne: false,
     landed: false,
     radio: null,
     radioAge: 0,
@@ -257,6 +258,8 @@ export function updateMission(state, flight, dt) {
     say(state, 'PETREL', 'Fuel is dry — gliding for the strip.');
   }
 
+  if (!flight.onGround) state.airborne = true;
+
   const gate = state.gates[state.gateIndex];
   if (gate) {
     const d = flight.position.distanceTo(gate.position);
@@ -276,7 +279,7 @@ export function updateMission(state, flight, dt) {
         }
       }
     }
-  } else if (state.def.landing) {
+  } else if (state.def.landing && state.airborne) {
     const onRunway = Math.abs(flight.position.x - WORLD.runway.x) < WORLD.runway.width / 2
       && Math.abs(flight.position.z - WORLD.runway.z) < WORLD.runway.length / 2;
     if (flight.onGround && onRunway && flight.speed < 3.2) {
