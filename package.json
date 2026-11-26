@@ -1,0 +1,7 @@
+{
+  "name": "windward-cinder-coast",
+  "private": true,
+  "type": "module",
+  "description": "A coastal flight game for make.fun",
+  "license": "MIT"
+}

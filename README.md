@@ -1,0 +1,71 @@
+# Windward: Cinder Coast
+
+[![make.fun flight game bounty](https://make.fun/badge/best-flight-game-20261126-0057.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
+[![leaderboard rank](https://make.fun/badge/best-flight-game-20261126-0057/YanaJeferson/windward-cinder-coast/rank.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
+[![reward](https://make.fun/badge/best-flight-game-20261126-0057/YanaJeferson/windward-cinder-coast/reward.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
+
+A complete low-poly coastal flight game for the browser, entered in make.fun's
+[Make the best flight game](https://make.fun/bounty/best-flight-game-20261126-0057) bounty.
+
+Fly the Petrel, a strut-braced bush plane, over the volcanic Cinder Coast: turquoise water,
+black-sand headlands, a river-cut canyon and a working airstrip. Three sorties, one airframe.
+
+## Play
+
+```sh
+node serve.ts
+# open http://localhost:8080
+```
+
+No build step and no network requests: `game/index.html` and every module it loads live in this
+repository. The game runs in desktop Chrome (or any current desktop browser) at 1280×720.
+
+**Controls**
+
+| Input | Action |
+| --- | --- |
+| `W` / `S` or `↑` / `↓` | pitch (push / pull) |
+| `A` / `D` or `←` / `→` | roll |
+| `Q` / `E` | rudder |
+| `Shift` / `Ctrl` or mouse wheel | throttle |
+| Mouse (click to capture) | fly the aircraft |
+| `C` | chase / cockpit camera |
+| `G` | landing gear |
+| `F` | flaps |
+| `Space` | wheel brakes |
+| `P` | pause |
+| `R` | restart the sortie |
+| `M` | mute |
+
+## The three sorties
+
+1. **Dawn Ferry** — thread five coastal rings and land on runway 36.
+2. **Cinder Run** — a timed low-level run through six gates in the Cinder canyon.
+3. **The Long Way Home** — find the flare off the stacks on a tank that is nearly dry, then land.
+
+The flight model keeps energy honest: throttle and climb trade speed, bank bends the flight
+path, the wing stalls below 30 m/s, fuel burns, and a hard arrival ends the sortie. Landings
+need gear, a shallow descent and a runway; the mission card, HUD tapes, PAPI lights and
+approach lights lead you home.
+
+## Layout
+
+```
+main.ts                 hands game/ and screenshots/ to the grader and writes the dossier
+game/index.html         the entry page
+game/src/main.js        boot, screens, the one loop
+game/src/aircraft/      Petrel model, flight model, cockpit and lit gauges
+game/src/world/         terrain, sea, sky, airstrip, gates, vegetation
+game/src/hud/           compass, speed and altitude tapes, pitch ladder, mission card
+game/src/camera/        chase, cockpit and orbit rigs
+game/src/game/          missions, input, procedural audio
+game/src/util/          maths and canvas-painted textures
+game/vendor/            three.js (MIT), vendored and unmodified
+```
+
+The four screenshots in `screenshots/` are real renders of this game, staged by its own
+`?shot=` states and captured in desktop Chromium at 1280×720.
+
+## License
+
+MIT. See [LICENSE](./LICENSE).
