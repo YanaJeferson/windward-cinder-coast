@@ -704,5 +704,5 @@ window.__windward = {
   shot: stageShot,
   get screen() { return screen; },
   get mission() { return mission; },
-  debug: { scene, camera, renderer, flight, sampleHeight, THREE, plane, rig, weather, get gates() { return activeGates; } },
+  debug: { scene, camera, renderer, flight, sampleHeight, THREE, plane, rig, weather, get gates() { return activeGates; }, get warnings() { return warnings(); } },
 };

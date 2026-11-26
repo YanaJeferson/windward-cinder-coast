@@ -189,7 +189,7 @@ export function createFlight(initial = {}) {
     if (state.fuel <= 0) state.engineOn = false;
 
     // Nosewheel steering at taxi speed, rudder authority at takeoff speed.
-    const steer = controls.yaw * clamp(1 - state.speed / 40, 0.15, 1);
+    const steer = (controls.yaw + controls.roll * 0.55) * clamp(1 - state.speed / 40, 0.15, 1);
     tmpQ.setFromAxisAngle(UP, -steer * 0.85 * dt);
     state.quaternion.premultiply(tmpQ);
     const heading = headingOf(state.quaternion);
