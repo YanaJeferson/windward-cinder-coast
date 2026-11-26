@@ -2,13 +2,14 @@
 // ?shot=... queries stage the four photographs the entry hands in, using the same game systems.
 import * as THREE from '../vendor/three.module.min.js';
 import { AIRCRAFT, PALETTE, SCREENS, WORLD } from './config.js';
-import { createTerrain, createDistantRange, sampleHeight } from './world/terrain.js';
+import { createTerrain, createHeightTexture, sampleHeight } from './world/terrain.js';
 import { createSea } from './world/sea.js';
 import { createSky } from './world/sky.js';
 import { createAirport } from './world/airport.js';
 import { createVegetation } from './world/vegetation.js';
 import { createGrass } from './world/grass.js';
 import { createFields } from './world/fields.js';
+import { createCrashEffects } from './game/effects.js';
 import { createWeather, windVector } from './world/weather.js';
 import { createGates, createBeacon, updateGates } from './world/gates.js';
 import { createAircraft } from './aircraft/plane.js';
@@ -94,6 +95,8 @@ sunLight.shadow.normalBias = 0.35;
 const sea = createSea();
 scene.add(sea);
 const terrain = createTerrain();
+const heightTex = createHeightTexture();
+sea.material.uniforms.uHeight.value = heightTex;
 scene.add(terrain);
 const airport = createAirport();
 airport.traverse((o) => {
@@ -108,6 +111,7 @@ grass.b.visible = false;
 scene.add(createFields());
 
 const weather = createWeather({ scene, sky, sea });
+const effects = createCrashEffects(scene);
 const plane = createAircraft();
 plane.traverse((o) => {
   if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
@@ -166,6 +170,9 @@ let shake = 0;
 let resultDelay = 0;
 let showHelp = false;
 let lastGround = false;
+let crashStarted = false;
+let crashFlash = 0;
+const stick = { roll: 0, pitch: 0, yaw: 0 };
 let time = 0;
 
 const titleFlight = {
@@ -227,6 +234,10 @@ function beginMission(index) {
   flight.state.parkingBrake = Boolean(s.parking);
   flight.state.touchdownAt = null;
   flight.state.landingGrade = null;
+  effects.clear();
+  plane.visible = true;
+  crashStarted = false;
+  crashFlash = 0;
   weather.set(def.weather ?? 'clear');
   setHeading(flight.state, s.heading);
   flight.state.heading = s.heading;
@@ -309,12 +320,25 @@ function handleInput() {
 
 function stepFlight(dt) {
   const a = input.axes();
+  stick.roll = a.roll;
+  stick.pitch = a.pitch;
+  stick.yaw = a.yaw;
   flight.state.throttle = clamp(flight.state.throttle + input.throttleDelta(dt), 0, 1);
   const controls = { ...a, throttle: flight.state.throttle };
   flight.update(dt, controls, windVector(mission?.wind, time));
   audio.update(flight.state, dt);
   elapsed += dt;
   time += dt;
+
+  if (flight.state.crashed && !crashStarted) {
+    crashStarted = true;
+    crashFlash = 1;
+    audio.crash();
+    const ground = sampleHeight(flight.state.position.x, flight.state.position.z);
+    effects.burst(flight.state.position, ground);
+    plane.visible = false;
+    resultDelay = 3.0;
+  }
 
   if (mission && screen === SCREENS.FLY) {
     const before = mission.gateIndex;
@@ -327,12 +351,11 @@ function stepFlight(dt) {
     else if (mission.failed) finishMission(false);
   }
 
-  if (flight.state.onGround && !lastGround) audio.thud(clamp(Math.abs(flight.state.vertical) / 5 + 0.5, 0.4, 1.6));
-  lastGround = flight.state.onGround;
-  if (flight.state.crashed && screen === SCREENS.FLY) {
-    audio.crash();
-    resultDelay = 1.9;
+  if (flight.state.onGround && !lastGround) {
+    audio.thud(clamp(Math.abs(flight.state.vertical) / 5 + 0.5, 0.4, 1.6));
+    effects.dust(flight.state.position);
   }
+  lastGround = flight.state.onGround;
 }
 
 function updateTitle(dt) {
@@ -418,7 +441,18 @@ function updateWorld(dt) {
     sunLight.target.updateMatrixWorld();
     sunLight.updateMatrixWorld();
   }
+  if (plane.userData.ailerons) {
+    for (const a of plane.userData.ailerons) {
+      a.hinge.rotation.x = damp(a.hinge.rotation.x, -stick.roll * 0.42 * a.side, 8, dt);
+    }
+    for (const e of plane.userData.elevators) {
+      e.rotation.x = damp(e.rotation.x, -stick.pitch * 0.32, 8, dt);
+    }
+    plane.userData.rudder.rotation.y = damp(plane.userData.rudder.rotation.y, -stick.yaw * 0.42, 8, dt);
+  }
   weather.update(dt, camera, flight.state);
+  effects.update(dt);
+  crashFlash = Math.max(0, crashFlash - dt * 1.4);
   updateGates(activeGates, mission ? mission.gateIndex : 0, time);
   if (activeBeacon && mission && mission.gateIndex >= 2) {
     activeBeacon.userData.column.material.opacity = 0.28 + Math.sin(time * 4) * 0.1;
@@ -463,6 +497,7 @@ function renderFrame(dt) {
         warnings: warnings(),
         radio: mission?.radio,
         wind: mission?.wind,
+        flash: crashFlash,
         engine: flight.state.engineOn ? (flight.state.engineStarting > 0 ? 'START' : 'ON') : 'OUT',
         touchdown: flight.state.onGround && flight.state.touchdownAt !== null && flight.state.time - flight.state.touchdownAt < 4
           ? `TOUCHDOWN · ${flight.state.landingGrade} · ${Math.round(flight.state.touchdownRate * 196.85)} FPM`
@@ -627,7 +662,7 @@ function drawPause(g, W, H, s) {
 
 function drawResult(g, W, H, s) {
   const ok = mission?.complete;
-  g.fillStyle = 'rgba(8,12,14,0.6)';
+  g.fillStyle = 'rgba(8,12,14,0.42)';
   g.fillRect(0, 0, W, H);
   g.textAlign = 'center';
   g.fillStyle = ok ? PALETTE.teal : PALETTE.warning;

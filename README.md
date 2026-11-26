@@ -8,7 +8,8 @@ A complete coastal flight game for the browser, entered in make.fun's
 [Make the best flight game](https://make.fun/bounty/best-flight-game-20261126-0057) bounty.
 
 Fly the Petrel, a strut-braced bush plane, over the volcanic Cinder Coast: turquoise water,
-black-sand headlands, a river-cut canyon and a working airstrip. Three sorties, one airframe.
+black-sand headlands, a river-cut canyon, outer islands and a working airstrip. Eight ways to
+fly, one airframe.
 
 ## Play
 
@@ -63,8 +64,9 @@ path, the wing stalls below 30 m/s, fuel burns, and a hard arrival ends the sort
 **Systems.** The engine starts and stops with `X` (with a short starter crank); with it off the
 Petrel glides, the propeller windmills and the HUD calls the glide speed. `Space` is wheel brake,
 `B` is the parking brake. Landings need gear, a shallow descent and a runway; the touchdown is
-graded (smooth, firm or hard) and a heavy arrival damages the airframe. The mission card, HUD
-tapes, PAPI lights and approach lights lead you home.
+graded (smooth, firm or hard) and a heavy arrival damages the airframe. Ailerons, elevator and
+rudder animate with the controls; a crash throws a fireball, smoke, debris and a ground scar.
+The mission card, HUD tapes, PAPI lights and approach lights lead you home.
 
 ## Layout
 
@@ -81,8 +83,10 @@ game/src/util/          maths and canvas-painted textures
 game/vendor/            three.js (MIT), vendored and unmodified
 ```
 
-The four screenshots in `screenshots/` are real renders of this game, staged by its own
-`?shot=` states and captured in desktop Chromium at 1280×720.
+The world is 16 km across, with four outer islands, woodland belts, crop fields and a water
+shader that reads the terrain height for shallows, depth colour and shore foam. The four
+screenshots in `screenshots/` are real renders of this game, staged by its own `?shot=` states
+and captured in desktop Chromium at 1280×720.
 
 ## License
 

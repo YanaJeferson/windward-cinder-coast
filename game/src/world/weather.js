@@ -5,24 +5,24 @@ import { WORLD } from '../config.js';
 import { createRandom } from '../util/math.js';
 
 const CLEAR = {
-  fog: '#e9c49c',
+  fog: '#c9d5da',
   fogNear: 5000,
-  fogFar: 17000,
+  fogFar: 22000,
   zenith: '#3a7090',
   horizon: '#f7c795',
   low: '#e7a273',
   sunColor: '#ffe9c6',
-  sunLight: '#ffd9a8',
-  sunIntensity: 2.9,
-  hemiSky: '#ffd5ac',
-  hemiGround: '#4d4034',
-  hemiIntensity: 1.75,
-  seaDeep: '#1e7084',
-  seaShallow: '#63c5ba',
-  seaSky: '#efcf9f',
-  seaFog: '#ecc59c',
+  sunLight: '#fff0d2',
+  sunIntensity: 2.8,
+  hemiSky: '#c8dcea',
+  hemiGround: '#5b4a36',
+  hemiIntensity: 1.2,
+  seaDeep: '#2b8fa3',
+  seaShallow: '#7fd8c8',
+  seaSky: '#cfe4f0',
+  seaFog: '#c9d5da',
   seaFogNear: 900,
-  seaFogFar: 16000,
+  seaFogFar: 18000,
 };
 
 const STORM = {

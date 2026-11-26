@@ -59,6 +59,12 @@ export function sampleHeight(x, z) {
   h += gauss(x, z, 4300, 1700, 780, 132);
   h += gauss(x, z, 3900, 2350, 420, 66);
 
+  // Outer islands that widen the playable coast.
+  h += gauss(x, z, 4300, 2700, 1250, 240);
+  h += gauss(x, z, -4500, 2900, 950, 190);
+  h += gauss(x, z, 3700, -4400, 1150, 300);
+  h += gauss(x, z, -3600, -3900, 1050, 260);
+
   // The airstrip shelf: a flat headland cut into the coastal slope, open to the south.
   const shelfD = Math.sqrt((x / 1050) ** 2 + ((z + 160) / 1250) ** 2);
   const shelf = 1 - smoothstep(0.58, 1.3, shelfD);
@@ -122,6 +128,30 @@ function vertexColor(h, slope, x, z, out, ao = 1) {
   const shade = (0.8 + grain * 0.18 + macro * 0.16) * ao * lit;
   out.setRGB(clamp(c.r * shade, 0, 1), clamp(c.g * shade, 0, 1), clamp(c.b * shade, 0, 1));
   return out;
+}
+
+/** A coarse terrain-height map for the water shader: shore depth and foam. */
+export function createHeightTexture(size = 256) {
+  const data = new Uint8Array(size * size * 4);
+  const minH = -80;
+  const maxH = 920;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const wx = (x / (size - 1) - 0.5) * WORLD.size;
+      const wz = (y / (size - 1) - 0.5) * WORLD.size;
+      const h = Math.max(minH, Math.min(maxH, sampleHeight(wx, wz)));
+      const v = Math.round(((h - minH) / (maxH - minH)) * 255);
+      const i = (y * size + x) * 4;
+      data[i] = v; data[i + 1] = v; data[i + 2] = v; data[i + 3] = 255;
+    }
+  }
+  const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 export function createTerrain() {

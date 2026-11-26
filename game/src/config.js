@@ -3,7 +3,7 @@
 // Metres and seconds; heading 0 flies north (-Z), 90 east (+X).
 
 export const WORLD = {
-  size: 12000,          // terrain square, centred on the airstrip
+  size: 16000,          // terrain square, centred on the airstrip
   seaLevel: 0,
   runway: {
     x: 0,

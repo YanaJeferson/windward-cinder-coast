@@ -219,6 +219,7 @@ export function createAircraft() {
 
   // High wing with dihedral, one panel a side.
   const wingMat = new THREE.MeshStandardMaterial({ map: wingTexture(), roughness: 0.56, metalness: 0.05, envMapIntensity: 0.25 });
+  const ailerons = [];
   const wing = new THREE.Group();
   wing.position.set(0, 0.94, -0.55);
   for (const side of [-1, 1]) {
@@ -231,9 +232,13 @@ export function createAircraft() {
     tip.position.set(side * 5.18, 0.36, 0);
     tip.rotation.z = side * 0.035;
     wing.add(tip);
+    const aileronHinge = new THREE.Group();
+    aileronHinge.position.set(side * 4.1, 0.12, 0.86);
     const aileron = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.07, 0.3), wingMat);
-    aileron.position.set(side * 4.1, 0.12, 0.86);
-    wing.add(aileron);
+    aileron.position.z = 0.15;
+    aileronHinge.add(aileron);
+    wing.add(aileronHinge);
+    ailerons.push({ hinge: aileronHinge, side });
     const nav = new THREE.Mesh(
       new THREE.SphereGeometry(0.085, 8, 6),
       new THREE.MeshBasicMaterial({ color: side < 0 ? '#ff4a3d' : '#54ff9e' }),
@@ -262,16 +267,24 @@ export function createAircraft() {
   fin.position.set(0, 0.95, 3.62);
   fin.rotation.x = -0.1;
   group.add(fin);
+  const rudderHinge = new THREE.Group();
+  rudderHinge.position.set(0, 0.84, 4.12);
   const rudder = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.05, 0.34), CREAM);
-  rudder.position.set(0, 0.84, 4.28);
-  group.add(rudder);
+  rudder.position.z = 0.18;
+  rudderHinge.add(rudder);
+  group.add(rudderHinge);
   const stabilizer = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.1, 0.86), CREAM);
   stabilizer.position.set(0, 0.34, 3.8);
   group.add(stabilizer);
+  const elevators = [];
   for (const side of [-1, 1]) {
+    const hinge = new THREE.Group();
+    hinge.position.set(side * 0.96, 0.34, 4.15);
     const elevator = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.06, 0.32), CORAL);
-    elevator.position.set(side * 0.96, 0.34, 4.28);
-    group.add(elevator);
+    elevator.position.z = 0.17;
+    hinge.add(elevator);
+    group.add(hinge);
+    elevators.push(hinge);
   }
 
   // Nose spinner, propeller and its motion disc.
@@ -401,6 +414,6 @@ export function createAircraft() {
     }
   }
 
-  group.userData = { propeller, propDisc, flaps, gear, wing, body, canopy, canopyFrame };
+  group.userData = { propeller, propDisc, flaps, gear, wing, body, canopy, canopyFrame, ailerons, elevators, rudder: rudderHinge };
   return group;
 }

@@ -18,7 +18,7 @@ export function createVegetation() {
   const coniferMat = new THREE.MeshStandardMaterial({ color: '#3d5a3a', roughness: 0.9, flatShading: true });
   const broadMat = new THREE.MeshStandardMaterial({ color: '#526b3d', roughness: 0.9, flatShading: true });
 
-  const count = 640;
+  const count = 1200;
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, count);
   const conifers = new THREE.InstancedMesh(coniferGeo, coniferMat, count * 2);
   const broads = new THREE.InstancedMesh(broadGeo, broadMat, count * 3);
@@ -32,11 +32,20 @@ export function createVegetation() {
   let placed = 0;
   let coniferCount = 0;
   let broadCount = 0;
+  const clusters = [[-1800, -2300], [-3100, 400], [1500, -2200], [-400, 2300], [2800, 1400], [4200, 3000], [-3800, -3600], [3600, -4200]];
   let tries = 0;
-  while (placed < count && tries < count * 50) {
+  while (placed < count && tries < count * 60) {
     tries += 1;
-    const x = (random() - 0.5) * 8600 - 600;
-    const z = (random() - 0.5) * 7600 - 500;
+    let x;
+    let z;
+    if (random() < 0.62) {
+      const c = clusters[Math.floor(random() * clusters.length)];
+      x = c[0] + (random() - 0.5) * 1100;
+      z = c[1] + (random() - 0.5) * 1100;
+    } else {
+      x = (random() - 0.5) * 9600 - 600;
+      z = (random() - 0.5) * 9000 - 500;
+    }
     const h = sampleHeight(x, z);
     const dx = Math.abs(x - WORLD.runway.x);
     const dz = Math.abs(z - WORLD.runway.z);

@@ -14,13 +14,17 @@ export function createSea() {
   const uniforms = {
     uTime: { value: 0 },
     uSun: { value: sun },
-    uDeep: { value: new THREE.Color('#1e7084') },
-    uShallow: { value: new THREE.Color('#63c5ba') },
-    uSky: { value: new THREE.Color('#c9d5da') },
+    uDeep: { value: new THREE.Color('#2b8fa3') },
+    uShallow: { value: new THREE.Color('#7fd8c8') },
+    uSky: { value: new THREE.Color('#cfe4f0') },
     uSunColor: { value: new THREE.Color('#ffd9a0') },
     uFogColor: { value: new THREE.Color('#c9d5da') },
     uFogNear: { value: 900 },
     uFogFar: { value: 16000 },
+    uHeight: { value: null },
+    uWorldSize: { value: WORLD.size },
+    uMinH: { value: -80 },
+    uMaxH: { value: 920 },
   };
 
   const mat = new THREE.ShaderMaterial({
@@ -46,6 +50,10 @@ export function createSea() {
       uniform vec3 uFogColor;
       uniform float uFogNear;
       uniform float uFogFar;
+      uniform sampler2D uHeight;
+      uniform float uWorldSize;
+      uniform float uMinH;
+      uniform float uMaxH;
       varying vec3 vWorld;
       varying vec2 vUv;
 
@@ -69,11 +77,17 @@ export function createSea() {
         float fres = pow(1.0 - clamp(dot(viewDir, n), 0.0, 1.0), 2.4);
         float shimmer = pow(max(dot(reflect(-viewDir, n), uSun), 0.0), 90.0);
         float glitter = smoothstep(0.72, 1.0, noise(vWorld.xz * 0.42 + uTime * 2.1)) * shimmer;
-        float shelf = smoothstep(4600.0, 700.0, length(vWorld.xz - vec2(150.0, 400.0)));
+        vec2 huv = vWorld.xz / uWorldSize + 0.5;
+        float terrainH = texture2D(uHeight, huv).r * (uMaxH - uMinH) + uMinH;
+        float depth = max(0.0, -terrainH);
+        float shallow = smoothstep(0.0, 22.0, depth);
+        vec3 col = mix(uShallow, uDeep, shallow * 0.85 + fres * 0.15);
+        col = mix(col, uSky, 0.22 + fres * 0.5);
         float chop = smoothstep(0.55, 0.9, noise(vWorld.xz * 0.05 + uTime * 0.9));
-        vec3 col = mix(uDeep, uShallow, shelf * 0.8 + fres * 0.25);
-        col = mix(col, uSky, fres * 0.58);
-        col += vec3(0.05, 0.08, 0.07) * chop * (0.25 + fres * 0.5);
+        col += vec3(0.04, 0.07, 0.065) * chop * (0.25 + fres * 0.4);
+        float foamNoise = smoothstep(0.42, 0.78, noise(vWorld.xz * 0.22 + uTime * 0.65));
+        float foam = smoothstep(5.5, 0.0, depth) * foamNoise;
+        col = mix(col, vec3(0.93, 0.97, 0.96), foam * 0.45);
         col += uSunColor * (shimmer * 0.7 + glitter * 1.3);
         float dist = length(vWorld.xz - cameraPosition.xz);
         col = mix(col, uFogColor, smoothstep(uFogNear, uFogFar, dist) * 0.9);

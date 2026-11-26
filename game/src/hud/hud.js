@@ -467,6 +467,11 @@ export function createHud(canvas) {
       g.globalAlpha = 1;
     }
 
+    if (state.flash) {
+      g.fillStyle = `rgba(255,56,30,${0.28 * state.flash})`;
+      g.fillRect(0, 0, W, H);
+    }
+
     if (state.stage) {
       // Stage card for briefing, pause and results, drawn over a dim wash.
       g.fillStyle = 'rgba(8,12,14,0.62)';
