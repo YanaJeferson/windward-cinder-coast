@@ -17,13 +17,59 @@ function toTexture(c) {
   return tex;
 }
 
+
+/** A neutral, high-frequency ground detail: grass blades, grit and small stones. */
+export function makeGroundDetailTexture() {
+  const S = 512;
+  const { c, g } = canvas(S, S);
+  const random = createRandom(4401);
+  g.fillStyle = '#cfc4a6';
+  g.fillRect(0, 0, S, S);
+  // Broad tonal patches first: dry grass, darker turf, bare earth.
+  for (let i = 0; i < 90; i += 1) {
+    const x = random() * S;
+    const y = random() * S;
+    const r = 14 + random() * 80;
+    const grade = g.createRadialGradient(x, y, 2, x, y, r);
+    const tint = random();
+    if (tint < 0.42) grade.addColorStop(0, `rgba(${90 + random() * 30},${110 + random() * 35},${55 + random() * 25},0.16)`);
+    else if (tint < 0.78) grade.addColorStop(0, `rgba(${150 + random() * 40},${140 + random() * 35},${85 + random() * 30},0.13)`);
+    else grade.addColorStop(0, `rgba(${95 + random() * 30},${75 + random() * 25},${50 + random() * 20},0.15)`);
+    grade.addColorStop(1, 'rgba(160,150,110,0)');
+    g.fillStyle = grade;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // Blades, grit and small stones.
+  for (let i = 0; i < 42000; i += 1) {
+    const x = random() * S;
+    const y = random() * S;
+    const v = random();
+    g.fillStyle = `rgba(${55 + v * 95},${75 + v * 90},${35 + v * 70},${0.10 + random() * 0.20})`;
+    g.fillRect(x, y, 1 + random() * 2.4, 1 + random() * 5.5);
+  }
+  for (let i = 0; i < 900; i += 1) {
+    const x = random() * S;
+    const y = random() * S;
+    const r = 1 + random() * 3.4;
+    g.fillStyle = `rgba(${70 + random() * 60},${60 + random() * 50},${48 + random() * 40},${0.2 + random() * 0.25})`;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+  }
+  const tex = toTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 16;
+  return tex;
+}
+
 export function makeRunwayTexture() {
   const W = 256;
   const H = 2048;
   const { c, g } = canvas(W, H);
   const random = createRandom(8128);
 
-  g.fillStyle = '#2b2c30';
+  g.fillStyle = '#36373c';
   g.fillRect(0, 0, W, H);
   for (let i = 0; i < 9000; i += 1) {
     const v = random();
@@ -96,7 +142,98 @@ export function makeRunwayTexture() {
   g.fillText('36', 0, 0);
   g.restore();
 
+  // Patch repairs: rectangles of newer, darker asphalt with ragged edges.
+  for (let i = 0; i < 16; i += 1) {
+    const x = 20 + random() * (W - 80);
+    const y = random() * H;
+    const w = 18 + random() * 70;
+    const h = 22 + random() * 150;
+    g.fillStyle = `rgba(${34 + random() * 18},${35 + random() * 18},${38 + random() * 18},0.55)`;
+    g.fillRect(x, y, w, h);
+    g.strokeStyle = 'rgba(12,12,14,0.5)';
+    g.lineWidth = 1.5;
+    g.strokeRect(x, y, w, h);
+  }
+
+  // Cracks: thin, branching lines that catch the light.
+  g.strokeStyle = 'rgba(12,12,13,0.6)';
+  for (let i = 0; i < 34; i += 1) {
+    let x = 14 + random() * (W - 28);
+    let y = random() * H;
+    g.lineWidth = 0.8 + random() * 1.4;
+    g.beginPath();
+    g.moveTo(x, y);
+    const steps = 3 + Math.floor(random() * 5);
+    for (let k = 0; k < steps; k += 1) {
+      x += (random() - 0.5) * 26;
+      y += 8 + random() * 30;
+      g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+
+  // Rubber laid down at both touchdown zones.
+  for (const top of [true, false]) {
+    for (let i = 0; i < 26; i += 1) {
+      const x = 38 + random() * (W - 76);
+      const y = top ? 170 + random() * 190 : H - 360 + random() * 190;
+      g.fillStyle = `rgba(8,8,9,${0.05 + random() * 0.12})`;
+      g.fillRect(x, y, 2 + random() * 9, 12 + random() * 70);
+    }
+  }
+
+  // Oil and hydraulic stains.
+  for (let i = 0; i < 18; i += 1) {
+    const x = 30 + random() * (W - 60);
+    const y = random() * H;
+    const r = 3 + random() * 14;
+    const stain = g.createRadialGradient(x, y, 0, x, y, r);
+    stain.addColorStop(0, 'rgba(10,10,9,0.32)');
+    stain.addColorStop(1, 'rgba(10,10,9,0)');
+    g.fillStyle = stain;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
+  // Chipped paint.
+  for (let i = 0; i < 900; i += 1) {
+    g.fillStyle = `rgba(43,44,48,${0.12 + random() * 0.25})`;
+    g.fillRect(random() * W, random() * H, 1 + random() * 3, 1 + random() * 3);
+  }
+
   return toTexture(c);
+}
+
+/** A roughness/bump companion for the runway: asphalt grain and cracks. */
+export function makeAsphaltBump() {
+  const W = 256;
+  const H = 2048;
+  const { c, g } = canvas(W, H);
+  const random = createRandom(551);
+  g.fillStyle = '#8a8a8a';
+  g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 22000; i += 1) {
+    const v = 90 + random() * 90;
+    g.fillStyle = `rgba(${v},${v},${v},${0.18 + random() * 0.2})`;
+    g.fillRect(random() * W, random() * H, 1 + random() * 2, 1 + random() * 2);
+  }
+  g.strokeStyle = 'rgba(20,20,20,0.7)';
+  for (let i = 0; i < 40; i += 1) {
+    let x = random() * W;
+    let y = random() * H;
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(x, y);
+    for (let k = 0; k < 4; k += 1) {
+      x += (random() - 0.5) * 30;
+      y += 10 + random() * 40;
+      g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  const tex = toTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
 }
 
 export function makeApronTexture() {

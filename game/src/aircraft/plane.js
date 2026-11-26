@@ -19,15 +19,35 @@ function liveryTexture() {
   const g = c.getContext('2d');
   g.fillStyle = '#f0e2c4';
   g.fillRect(0, 0, 512, 256);
-  // Panel seams.
-  g.strokeStyle = 'rgba(120,104,80,0.25)';
-  g.lineWidth = 2;
+  // Panel seams and rivets.
+  g.strokeStyle = 'rgba(88,76,58,0.42)';
+  g.lineWidth = 1.6;
   for (let x = 24; x < 512; x += 48) {
     g.beginPath();
     g.moveTo(x, 0);
     g.lineTo(x, 256);
     g.stroke();
   }
+  for (let y = 36; y < 256; y += 46) {
+    g.strokeStyle = 'rgba(88,76,58,0.22)';
+    g.beginPath();
+    g.moveTo(0, y);
+    g.lineTo(512, y);
+    g.stroke();
+  }
+  g.fillStyle = 'rgba(90,78,60,0.5)';
+  for (let x = 24; x < 512; x += 48) {
+    for (let y = 10; y < 256; y += 13) g.fillRect(x - 1, y, 1.4, 1.4);
+  }
+  // Grime along the belly and behind the exhaust.
+  for (let i = 0; i < 40; i += 1) {
+    const x = 20 + Math.random() * 472;
+    const y = 180 + Math.random() * 70;
+    g.fillStyle = `rgba(70,58,44,${0.03 + Math.random() * 0.05})`;
+    g.fillRect(x, y, 2 + Math.random() * 10, 8 + Math.random() * 40);
+  }
+  g.fillStyle = 'rgba(50,42,32,0.18)';
+  g.fillRect(0, 205, 512, 30);
   // Coral cheatline down both flanks (u wraps the fuselage, so two bands).
   g.fillStyle = '#df5a39';
   g.fillRect(0, 118, 512, 26);
@@ -112,6 +132,54 @@ function tyre(x, y, z, radius = 0.42) {
   return group;
 }
 
+function liveryBump() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#7c7c7c';
+  g.fillRect(0, 0, 512, 256);
+  g.strokeStyle = '#2e2e2e';
+  g.lineWidth = 2;
+  for (let x = 24; x < 512; x += 48) {
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 256); g.stroke();
+  }
+  g.fillStyle = '#e2e2e2';
+  for (let x = 24; x < 512; x += 48) {
+    for (let y = 10; y < 256; y += 13) g.fillRect(x - 1, y, 2, 2);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+function wingTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#e7d9bd';
+  g.fillRect(0, 0, 512, 128);
+  g.strokeStyle = 'rgba(94,82,64,0.38)';
+  g.lineWidth = 1.5;
+  for (let x = 16; x < 512; x += 40) {
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke();
+  }
+  g.strokeStyle = 'rgba(94,82,64,0.26)';
+  g.beginPath(); g.moveTo(0, 18); g.lineTo(512, 18); g.stroke();
+  g.beginPath(); g.moveTo(0, 112); g.lineTo(512, 112); g.stroke();
+  for (let i = 0; i < 30; i += 1) {
+    g.fillStyle = `rgba(80,66,48,${0.03 + Math.random() * 0.05})`;
+    g.fillRect(Math.random() * 512, 20 + Math.random() * 80, 3 + Math.random() * 14, 2 + Math.random() * 8);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export function createAircraft() {
   const group = new THREE.Group();
   group.name = 'petrel-aircraft';
@@ -129,7 +197,7 @@ export function createAircraft() {
     { z: 4.15, w: 0.12, h: 0.22, y: 0.28 },
   ], 12);
   const bodyMat = new THREE.MeshStandardMaterial({
-    map: liveryTexture(), roughness: 0.56, metalness: 0.07,
+    map: liveryTexture(), bumpMap: liveryBump(), bumpScale: 0.012, roughness: 0.52, metalness: 0.08,
   });
   const body = new THREE.Mesh(fuselage, bodyMat);
   body.castShadow = true;
@@ -150,10 +218,11 @@ export function createAircraft() {
   }
 
   // High wing with dihedral, one panel a side.
+  const wingMat = new THREE.MeshStandardMaterial({ map: wingTexture(), roughness: 0.56, metalness: 0.05 });
   const wing = new THREE.Group();
   wing.position.set(0, 0.94, -0.55);
   for (const side of [-1, 1]) {
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(5.25, 0.16, 1.62), CREAM);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(5.25, 0.16, 1.62), wingMat);
     panel.position.set(side * 2.7, 0.18 * Math.abs(1), 0);
     panel.rotation.z = side * 0.035;
     panel.castShadow = true;
@@ -162,7 +231,7 @@ export function createAircraft() {
     tip.position.set(side * 5.18, 0.36, 0);
     tip.rotation.z = side * 0.035;
     wing.add(tip);
-    const aileron = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.07, 0.3), CREAM);
+    const aileron = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.07, 0.3), wingMat);
     aileron.position.set(side * 4.1, 0.12, 0.86);
     wing.add(aileron);
     const nav = new THREE.Mesh(

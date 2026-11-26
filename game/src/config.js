@@ -14,7 +14,7 @@ export const WORLD = {
     heading: 0,         // runway 36 / 18, aligned with north
     threshold: 450,
   },
-  sun: { azimuth: 78, elevation: 15 },   // low, warm, ahead-left of the northbound approach
+  sun: { azimuth: 74, elevation: 20 },   // low, warm, ahead-left of the northbound approach
   fog: { near: 2200, far: 10500 },
   gravity: 9.81,
 };
@@ -48,9 +48,9 @@ export const PALETTE = {
   skyZenith: '#3a7090',
   skyHorizon: '#f6c58c',
   sun: '#ffe6b8',
-  grass: '#87a45a',
-  grassDry: '#bda367',
-  rock: '#8a7157',
+  grass: '#6f8f45',
+  grassDry: '#b39a5c',
+  rock: '#7d6349',
   basalt: '#4b4139',
   sand: '#e0c690',
   asphalt: '#2c2d31',

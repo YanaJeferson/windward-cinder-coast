@@ -3,7 +3,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { WORLD } from '../config.js';
 import { sampleHeight } from './terrain.js';
-import { makeApronTexture, makeHangarTexture, makeRunwayTexture } from '../util/textures.js';
+import { makeApronTexture, makeAsphaltBump, makeHangarTexture, makeRunwayTexture } from '../util/textures.js';
 import { radialTexture } from './sky.js';
 
 const E = WORLD.runway.elevation;
@@ -38,7 +38,7 @@ export function createAirport() {
   // Runway paint, mapped along the strip.
   const runway = new THREE.Mesh(
     new THREE.PlaneGeometry(RWY.width, RWY.length),
-    new THREE.MeshStandardMaterial({ map: makeRunwayTexture(), roughness: 0.94, metalness: 0.02 }),
+    new THREE.MeshStandardMaterial({ map: makeRunwayTexture(), bumpMap: makeAsphaltBump(), bumpScale: 0.045, roughness: 0.92, metalness: 0.02 }),
   );
   runway.rotation.x = -Math.PI / 2;
   runway.position.set(RWY.x, E + 0.22, RWY.z);
@@ -162,6 +162,44 @@ export function createAirport() {
     crate.rotation.y = x * 0.1;
     group.add(crate);
   }
+
+  // Control tower on the west side of the apron: concrete base, glass cab, warm windows.
+  const tower = new THREE.Group();
+  const concrete = new THREE.MeshStandardMaterial({ color: '#b8ad95', roughness: 0.9 });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(7, 12, 7), concrete);
+  base.position.y = 6;
+  tower.add(base);
+  const cab = new THREE.Mesh(
+    new THREE.BoxGeometry(9, 3.2, 9),
+    new THREE.MeshStandardMaterial({ color: '#2b4a50', roughness: 0.18, metalness: 0.35, emissive: '#6b4a22', emissiveIntensity: 0.35 }),
+  );
+  cab.position.y = 13.6;
+  tower.add(cab);
+  const towerRoof = new THREE.Mesh(new THREE.BoxGeometry(10.4, 0.6, 10.4), new THREE.MeshStandardMaterial({ color: '#4a4740', roughness: 0.7, metalness: 0.3 }));
+  towerRoof.position.y = 15.5;
+  tower.add(towerRoof);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 5, 5), new THREE.MeshStandardMaterial({ color: '#c9c2b0', roughness: 0.5 }));
+  mast.position.y = 18.2;
+  tower.add(mast);
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), new THREE.MeshBasicMaterial({ color: '#ff6a4a' }));
+  beacon.position.y = 20.7;
+  tower.add(beacon);
+  tower.position.set(-160, E, -118);
+  tower.rotation.y = 0.18;
+  group.add(tower);
+
+  // A second windsock at the 36 threshold, where a pilot actually looks for it.
+  const pole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 6.5, 6), new THREE.MeshStandardMaterial({ color: '#d8d2c2', roughness: 0.5 }));
+  pole2.position.set(30, E + 3.25, 410);
+  group.add(pole2);
+  const sock2 = new THREE.Mesh(
+    new THREE.ConeGeometry(0.75, 3.0, 10, 1, true),
+    new THREE.MeshStandardMaterial({ map: stripedSockTexture(), side: THREE.DoubleSide, roughness: 0.85 }),
+  );
+  sock2.rotation.z = -Math.PI / 2 + 0.12;
+  sock2.rotation.y = 0.5;
+  sock2.position.set(31.5, E + 6.3, 410);
+  group.add(sock2);
 
   return group;
 }

@@ -7,6 +7,7 @@ import { createSea } from './world/sea.js';
 import { createSky } from './world/sky.js';
 import { createAirport } from './world/airport.js';
 import { createVegetation } from './world/vegetation.js';
+import { createGrass } from './world/grass.js';
 import { createWeather, windVector } from './world/weather.js';
 import { createGates, createBeacon, updateGates } from './world/gates.js';
 import { createAircraft } from './aircraft/plane.js';
@@ -36,7 +37,9 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#e7b98d');
@@ -47,17 +50,54 @@ camera.position.set(0, 240, 3000);
 
 const sky = createSky();
 scene.add(sky);
+const sunLight = sky.userData.sun;
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(512, 512);
+sunLight.shadow.camera.near = 10;
+sunLight.shadow.camera.far = 2600;
+sunLight.shadow.camera.left = -460;
+sunLight.shadow.camera.right = 460;
+sunLight.shadow.camera.top = 460;
+sunLight.shadow.camera.bottom = -460;
+sunLight.shadow.bias = -0.0006;
+sunLight.shadow.normalBias = 0.35;
 const sea = createSea();
 scene.add(sea);
 const terrain = createTerrain();
 scene.add(terrain);
 const airport = createAirport();
+airport.traverse((o) => {
+  if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
+});
 scene.add(airport);
 scene.add(createVegetation());
+const grass = createGrass();
+scene.add(grass.a, grass.b);
 
 const weather = createWeather({ scene, sky, sea });
 const plane = createAircraft();
+plane.traverse((o) => {
+  if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
+});
 scene.add(plane);
+const shadowTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(0,0,0,0.55)');
+  grd.addColorStop(0.55, 'rgba(0,0,0,0.25)');
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const shadowBlob = new THREE.Mesh(
+  new THREE.PlaneGeometry(22, 15),
+  new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.35 }),
+);
+shadowBlob.rotation.x = -Math.PI / 2;
+shadowBlob.renderOrder = 2;
+scene.add(shadowBlob);
 const cockpit = createCockpit();
 plane.add(cockpit.group);
 
@@ -327,6 +367,24 @@ function setCockpitShell(on) {
 
 function updateWorld(dt) {
   sea.userData.uniforms.uTime.value = time;
+  {
+    const gx = flight.state.position.x;
+    const gz = flight.state.position.z;
+    const gh = sampleHeight(gx, gz);
+    const alt = flight.state.position.y - gh;
+    shadowBlob.position.set(gx, gh + 0.28, gz);
+    shadowBlob.visible = gh > 2 && alt < 320;
+    shadowBlob.material.opacity = Math.max(0.04, 0.42 - alt / 700);
+    const s = 1 + Math.min(alt / 260, 1.7);
+    shadowBlob.scale.set(s, s, s);
+  }
+  if (sunLight && plane) {
+    const p = plane.position;
+    sunLight.target.position.copy(p);
+    sunLight.position.copy(p).addScaledVector(sky.userData.sunDir, 1500);
+    sunLight.target.updateMatrixWorld();
+    sunLight.updateMatrixWorld();
+  }
   weather.update(dt, camera, flight.state);
   updateGates(activeGates, mission ? mission.gateIndex : 0, time);
   if (activeBeacon && mission && mission.gateIndex >= 2) {

@@ -52,7 +52,7 @@ export function createSky() {
       fog: false,
       uniforms: {
         uSun: { value: sunDir },
-        uZenith: { value: new THREE.Color(PALETTE.skyZenith) },
+        uZenith: { value: new THREE.Color('#2e6a94') },
         uHorizon: { value: new THREE.Color('#f7c795') },
         uLow: { value: new THREE.Color('#e7a273') },
         uSunColor: { value: new THREE.Color('#ffe9c6') },
@@ -150,10 +150,10 @@ export function createSky() {
     group.add(sprite);
   }
 
-  const hemi = new THREE.HemisphereLight('#ffd5ac', '#4d4034', 1.75);
+  const hemi = new THREE.HemisphereLight('#bdd4e2', '#4a3d2e', 0.95);
   group.add(hemi);
 
-  const sun = new THREE.DirectionalLight('#ffd9a8', 2.9);
+  const sun = new THREE.DirectionalLight('#ffd9a8', 3.65);
   sun.position.copy(sunDir).multiplyScalar(4000);
   sun.target.position.set(0, 0, 0);
   group.add(sun);
