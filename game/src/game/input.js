@@ -9,6 +9,7 @@ export const ACTIONS = {
   MUTE: 32,
   RESTART: 64,
   HELP: 128,
+  FLIGHTMODE: 256,
 };
 
 export function createInput(canvas) {
@@ -33,6 +34,7 @@ export function createInput(canvas) {
     KeyM: ACTIONS.MUTE,
     KeyR: ACTIONS.RESTART,
     KeyH: ACTIONS.HELP,
+    KeyV: ACTIONS.FLIGHTMODE,
   };
 
   window.addEventListener('keydown', (e) => {

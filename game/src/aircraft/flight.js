@@ -28,6 +28,7 @@ export function createFlight(initial = {}) {
     bank: 0,
     heading: 0,
     gLoad: 1,
+    assist: true,
     lastY: 0,
     time: 0,
     ...initial,
@@ -52,7 +53,7 @@ export function createFlight(initial = {}) {
     return { fwd, right, up };
   }
 
-  function update(dt, controls) {
+  function update(dt, controls, wind = null) {
     if (state.crashed) return;
     state.time += dt;
     const a = axes();
@@ -62,8 +63,12 @@ export function createFlight(initial = {}) {
     if (state.onGround) {
       updateGround(dt, controls, a);
     } else {
-      // Pilot input, smoothed so the aircraft has mass.
-      const pitchTarget = controls.pitch * AIRCRAFT.pitchRate * (0.6 + speedFactor * 0.6) * authority;
+      // Pilot input, smoothed so the aircraft has mass. Past 66 degrees of pitch the elevator
+      // loses authority, which keeps the arcade envelope out of a vertical hover.
+      const pitchNow = Math.asin(clamp(a.fwd.y, -1, 1));
+      let pitchTarget = controls.pitch * AIRCRAFT.pitchRate * (0.6 + speedFactor * 0.6) * authority;
+      if (pitchNow > 1.15 && pitchTarget > 0) pitchTarget *= 0.18;
+      if (pitchNow < -1.15 && pitchTarget < 0) pitchTarget *= 0.18;
       const rollTarget = controls.roll * AIRCRAFT.rollRate * (0.55 + speedFactor * 0.55) * authority;
       const yawTarget = controls.yaw * AIRCRAFT.yawRate * speedFactor * authority;
       rate.pitch = damp(rate.pitch, pitchTarget, 7, dt);
@@ -84,7 +89,7 @@ export function createFlight(initial = {}) {
       state.quaternion.premultiply(tmpQ);
 
       // Hands-off wing leveller, gentle enough to leave a bank alone.
-      if (Math.abs(controls.roll) < 0.04 && Math.abs(controls.pitch) < 0.04) {
+      if (state.assist && Math.abs(controls.roll) < 0.04 && Math.abs(controls.pitch) < 0.04) {
         const bank = Math.atan2(-a.right.y, a.up.y);
         tmpQ.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -bank * 0.22 * dt);
         state.quaternion.multiply(tmpQ);
@@ -98,7 +103,8 @@ export function createFlight(initial = {}) {
       const flapDrag = 1 + state.flaps * 0.16;
       const drag = AIRCRAFT.drag * state.speed * state.speed * gearDrag * flapDrag;
       const gravityAlong = -WORLD.gravity * a.fwd.y * 0.9;
-      state.speed += (thrust - drag + gravityAlong) * dt;
+      const trim = state.assist ? 1 : 0.86;
+      state.speed += (thrust - drag + gravityAlong) * trim * dt;
       state.speed = clamp(state.speed, AIRCRAFT.minSpeed, AIRCRAFT.maxSpeed + 8);
 
       state.fuel = Math.max(0, state.fuel - AIRCRAFT.fuelBurn * (0.22 + state.throttle * 0.78) * dt);
@@ -116,6 +122,7 @@ export function createFlight(initial = {}) {
       }
 
       state.position.addScaledVector(a.fwd, state.speed * dt);
+      if (wind) state.position.addScaledVector(wind, dt);
       state.overspeed = state.speed > AIRCRAFT.maxSpeed;
       state.gLoad = 1 + Math.abs(rate.pitch) * state.speed * 0.055;
     }

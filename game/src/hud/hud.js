@@ -304,23 +304,28 @@ export function createHud(canvas) {
   }
 
   function missionCard(g, x, y, mission, flight, nextGate) {
-    const w = 236 * s;
-    const h = 84 * s;
+    const w = 240 * s;
+    const h = 88 * s;
     panel(g, x - w, y, w, h, 6, 'rgba(10,16,18,0.44)');
     g.textAlign = 'right';
     g.fillStyle = AMBER;
     g.font = `700 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
-    g.fillText(mission.name.toUpperCase(), x - 12 * s, y + 18 * s);
+    g.fillText(mission.name.toUpperCase(), x - 12 * s, y + 17 * s);
     g.fillStyle = CREAM;
-    g.font = `500 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
-    g.fillText(mission.objective, x - 12 * s, y + 35 * s);
+    g.font = `500 ${10.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+    g.fillText(mission.objective, x - 12 * s, y + 33 * s);
     g.fillStyle = DIM;
-    g.font = `600 ${10 * s}px "SF Mono", Consolas, monospace`;
-    const dist = nextGate ? `${(nextGate / 1000).toFixed(1)} KM` : 'FINAL';
-    g.fillText(`${mission.gateIndex + 1}/${mission.gates.length}  ${dist}`, x - 12 * s, y + 54 * s);
-    g.fillStyle = mission.timeLeft < 30 ? WARN : CREAM;
-    g.font = `700 ${15 * s}px "SF Mono", Consolas, monospace`;
-    g.fillText(formatTime(mission.timeLeft), x - 12 * s, y + 74 * s);
+    g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
+    const total = mission.gates.length;
+    const dist = nextGate ? `${(nextGate / 1000).toFixed(1)} KM` : total ? 'FINAL' : 'LAND 36';
+    g.fillText(total ? `${mission.gateIndex + 1}/${total}  ${dist}` : dist, x - 12 * s, y + 51 * s);
+    const timed = mission.timeLimit !== null;
+    g.fillStyle = timed && mission.timeLeft < 30 ? WARN : CREAM;
+    g.font = `700 ${14 * s}px "SF Mono", Consolas, monospace`;
+    g.fillText(timed ? formatTime(mission.timeLeft) : `FREE ${formatTime(mission.elapsed)}`, x - 12 * s, y + 72 * s);
+    g.fillStyle = flight.assist ? TEAL : AMBER;
+    g.font = `600 ${8 * s}px "Helvetica Neue", Arial, sans-serif`;
+    g.fillText(flight.assist ? 'ASSIST' : 'PRO', x - 12 * s, y + 83 * s);
   }
 
   function draw(state) {
@@ -344,6 +349,12 @@ export function createHud(canvas) {
     g.fillStyle = DIM;
     g.font = `600 ${9 * s}px "Helvetica Neue", Arial, sans-serif`;
     g.fillText('CINDER COAST', 34 * s, 52 * s);
+    if (state.wind) {
+      g.fillStyle = 'rgba(255,241,210,0.62)';
+      g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
+      const w = state.wind;
+      g.fillText(`WIND ${pad(w.from, 3)}° / ${Math.round(w.speed)} KT${w.gust ? ' G' + Math.round(w.gust) : ''}`, 34 * s, 68 * s);
+    }
 
     compass(g, cx, 22 * s, flight.heading);
     if (!state.compact) {

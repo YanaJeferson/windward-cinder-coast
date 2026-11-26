@@ -7,6 +7,7 @@ import { createSea } from './world/sea.js';
 import { createSky } from './world/sky.js';
 import { createAirport } from './world/airport.js';
 import { createVegetation } from './world/vegetation.js';
+import { createWeather, windVector } from './world/weather.js';
 import { createGates, createBeacon, updateGates } from './world/gates.js';
 import { createAircraft } from './aircraft/plane.js';
 import { createCockpit } from './aircraft/cockpit.js';
@@ -54,6 +55,7 @@ const airport = createAirport();
 scene.add(airport);
 scene.add(createVegetation());
 
+const weather = createWeather({ scene, sky, sea });
 const plane = createAircraft();
 scene.add(plane);
 const cockpit = createCockpit();
@@ -80,7 +82,7 @@ const audio = createAudio();
 const input = createInput(sceneCanvas);
 
 let screen = SCREENS.TITLE;
-let selected = 0;
+let selected = 2;
 let mission = null;
 let activeGroup = null;
 let activeGates = [];
@@ -136,16 +138,17 @@ function beginMission(index) {
   const s = def.start;
   flight.state.position.set(s.x, s.y, s.z);
   flight.state.speed = s.speed;
-  flight.state.throttle = 0.68;
+  flight.state.throttle = s.ground ? 0 : 0.68;
   flight.state.fuel = s.fuel;
   flight.state.damage = 0;
   flight.state.gearDown = Boolean(s.gear);
   flight.state.flaps = s.flaps ?? 0;
-  flight.state.onGround = false;
+  flight.state.onGround = Boolean(s.ground);
   flight.state.crashed = false;
   flight.state.stopped = false;
   flight.state.vertical = 0;
   flight.state.lastY = s.y;
+  weather.set(def.weather ?? 'clear');
   setHeading(flight.state, s.heading);
   flight.state.heading = s.heading;
   rig.snap(flight.state);
@@ -181,6 +184,7 @@ function toTitle() {
   plane.visible = true;
   cockpit.group.visible = false;
   setCockpitShell(false);
+  weather.set('clear');
   rig.setMode('orbit');
   announce('Windward: Cinder Coast. Choose a sortie.');
 }
@@ -197,9 +201,11 @@ function handleInput() {
   } else if (screen === SCREENS.FLY) {
     if (actions & ACTIONS.PAUSE) screen = SCREENS.PAUSE;
     if (actions & ACTIONS.CAMERA) {
-      rig.setMode(rig.mode === 'cockpit' ? 'chase' : 'cockpit');
+      const order = ['chase', 'cockpit', 'wing'];
+      rig.setMode(order[(order.indexOf(rig.mode) + 1) % order.length]);
       cockpit.group.visible = rig.mode === 'cockpit';
     }
+    if (actions & ACTIONS.FLIGHTMODE) flight.state.assist = !flight.state.assist;
     if (actions & ACTIONS.GEAR) flight.state.gearDown = !flight.state.gearDown;
     if (actions & ACTIONS.FLAPS) flight.state.flaps = flight.state.flaps > 0.7 ? 0 : flight.state.flaps > 0.2 ? 1 : 0.5;
     if (actions & ACTIONS.MUTE) audio.toggleMute();
@@ -220,7 +226,7 @@ function stepFlight(dt) {
   const a = input.axes();
   flight.state.throttle = clamp(flight.state.throttle + input.throttleDelta(dt), 0, 1);
   const controls = { ...a, throttle: flight.state.throttle };
-  flight.update(dt, controls);
+  flight.update(dt, controls, windVector(mission?.wind, time));
   elapsed += dt;
   time += dt;
 
@@ -292,6 +298,7 @@ function setCockpitShell(on) {
 
 function updateWorld(dt) {
   sea.userData.uniforms.uTime.value = time;
+  weather.update(dt, camera, flight.state);
   updateGates(activeGates, mission ? mission.gateIndex : 0, time);
   if (activeBeacon && mission && mission.gateIndex >= 2) {
     activeBeacon.userData.column.material.opacity = 0.28 + Math.sin(time * 4) * 0.1;
@@ -332,6 +339,7 @@ function renderFrame(dt) {
         gateScreen: activeGateScreen(),
         warnings: warnings(),
         radio: mission?.radio,
+        wind: mission?.wind,
       });
     } else {
       hud.draw({
@@ -402,7 +410,7 @@ function drawTitle(g, W, H, s) {
   g.letterSpacing = '0px';
   g.fillStyle = 'rgba(255,241,210,0.6)';
   g.font = `400 ${14 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('A coastal flight in three sorties.', x + 3 * s, H * 0.32 + 62 * s);
+  g.fillText('A coastal flight in seven sorties.', x + 3 * s, H * 0.32 + 62 * s);
 
   g.strokeStyle = 'rgba(255,180,92,0.6)';
   g.lineWidth = 1;
@@ -412,21 +420,21 @@ function drawTitle(g, W, H, s) {
   g.stroke();
 
   missions.forEach((m, i) => {
-    const y = H * 0.53 + i * 46 * s;
+    const y = H * 0.5 + i * 40 * s;
     const active = i === selected;
     if (active) {
       g.fillStyle = 'rgba(255,180,92,0.14)';
-      g.fillRect(x - 10 * s, y - 22 * s, 388 * s, 36 * s);
+      g.fillRect(x - 10 * s, y - 19 * s, 388 * s, 32 * s);
       g.fillStyle = PALETTE.amber;
-      g.fillRect(x - 10 * s, y - 22 * s, 2.5 * s, 36 * s);
+      g.fillRect(x - 10 * s, y - 19 * s, 2.5 * s, 32 * s);
     }
     g.fillStyle = active ? PALETTE.cream : 'rgba(255,241,210,0.55)';
-    g.font = `${active ? 700 : 500} ${18 * s}px "Helvetica Neue", Arial, sans-serif`;
+    g.font = `${active ? 700 : 500} ${17 * s}px "Helvetica Neue", Arial, sans-serif`;
     g.fillText(`0${i + 1}`, x, y);
-    g.font = `${active ? 600 : 400} ${16 * s}px "Helvetica Neue", Arial, sans-serif`;
+    g.font = `${active ? 600 : 400} ${15 * s}px "Helvetica Neue", Arial, sans-serif`;
     g.fillText(m.name.toUpperCase(), x + 44 * s, y);
     g.fillStyle = active ? 'rgba(255,241,210,0.7)' : 'rgba(255,241,210,0.3)';
-    g.font = `400 ${11.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+    g.font = `400 ${10.5 * s}px "Helvetica Neue", Arial, sans-serif`;
     g.fillText(m.objective, x + 44 * s, y + 17 * s);
   });
 
@@ -462,7 +470,11 @@ function drawBrief(g, W, H, s) {
   wrap(g, mission.brief, x + 38 * s, y + 124 * s, w - 76 * s, 22 * s);
   g.fillStyle = 'rgba(255,241,210,0.5)';
   g.font = `600 ${11 * s}px "SF Mono", Consolas, monospace`;
-  g.fillText(`${mission.gates.length} RINGS   ${formatTime(mission.timeLimit)}   ${mission.def.landing ? 'LANDING REQUIRED' : 'TIMED RUN'}`, x + 38 * s, y + h - 86 * s);
+  const rings = mission.gates.length ? `${mission.gates.length} RINGS` : 'NO RINGS';
+  const clock = mission.timeLimit !== null ? formatTime(mission.timeLimit) : 'NO CLOCK';
+  const finish = mission.def.landing ? 'LANDING REQUIRED' : 'TIMED RUN';
+  const wx = mission.weather === 'storm' ? 'STORM' : 'CLEAR';
+  g.fillText(`${rings}   ${clock}   ${finish}   ${wx}`, x + 38 * s, y + h - 86 * s);
   g.fillStyle = PALETTE.amber;
   g.font = `700 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
   g.fillText('ENTER  FLY', x + 38 * s, y + h - 48 * s);
@@ -511,10 +523,11 @@ const shot = params.get('shot');
 
 function stageShot(name) {
   const setups = {
-    cover: { mission: 0, position: [-20, 124, 1500], heading: 1, speed: 58, roll: -0.1, pitch: 0.015, camera: 'hero', gate: 0 },
-    cockpit: { mission: 0, position: [10, 190, 1700], heading: 0, speed: 57, roll: 0.0, pitch: 0.03, camera: 'cockpit', gate: 0 },
-    canyon: { mission: 1, position: [canyonPoint(-1000), 0, -1000], heading: 358, speed: 72, roll: -0.05, pitch: 0.01, camera: 'chase', gate: 4 },
-    landing: { mission: 0, position: [-8, 64, 624], heading: 0, speed: 46, roll: 0.0, pitch: -0.04, camera: 'hero', gate: 5 },
+    cover: { mission: 2, position: [-20, 124, 1500], heading: 1, speed: 58, roll: -0.1, pitch: 0.015, camera: 'hero', gate: 0 },
+    cockpit: { mission: 2, position: [10, 190, 1700], heading: 0, speed: 57, roll: 0.0, pitch: 0.03, camera: 'cockpit', gate: 0 },
+    canyon: { mission: 3, position: [canyonPoint(-1000), 0, -1000], heading: 358, speed: 72, roll: -0.05, pitch: 0.01, camera: 'chase', gate: 4 },
+    landing: { mission: 2, position: [-8, 64, 624], heading: 0, speed: 46, roll: 0.0, pitch: -0.04, camera: 'hero', gate: 5 },
+    storm: { mission: 6, position: [0, 210, 2300], heading: 0, speed: 60, roll: -0.04, pitch: 0.02, camera: 'hero', gate: 0 },
   };
   const setup = setups[name];
   if (!setup) return false;
@@ -598,6 +611,7 @@ function frame(now) {
       warnings: [],
       radio: shot === 'cockpit' ? null : mission.radio,
       compact: shot === 'cockpit',
+      wind: mission.wind,
     });
     renderer.render(scene, camera);
     window.__shotFrames = (window.__shotFrames ?? 0) + 1;
@@ -651,5 +665,5 @@ window.__windward = {
   shot: stageShot,
   get screen() { return screen; },
   get mission() { return mission; },
-  debug: { scene, camera, renderer, flight, sampleHeight, THREE, plane, rig, get gates() { return activeGates; } },
+  debug: { scene, camera, renderer, flight, sampleHeight, THREE, plane, rig, weather, get gates() { return activeGates; } },
 };
