@@ -14,7 +14,7 @@ export const WORLD = {
     heading: 0,         // runway 36 / 18, aligned with north
     threshold: 450,
   },
-  sun: { azimuth: 74, elevation: 20 },   // low, warm, ahead-left of the northbound approach
+  sun: { azimuth: 74, elevation: 26 },   // low, warm, ahead-left of the northbound approach
   fog: { near: 2200, far: 10500 },
   gravity: 9.81,
 };

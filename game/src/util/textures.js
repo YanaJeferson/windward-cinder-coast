@@ -19,6 +19,72 @@ function toTexture(c) {
 
 
 /** A neutral, high-frequency ground detail: grass blades, grit and small stones. */
+
+/** Light, fine grass detail for the terrain shader (tinted by vertex colour). */
+export function makeGrassDetailTexture() {
+  const S = 512;
+  const { c, g } = canvas(S, S);
+  const random = createRandom(8821);
+  g.fillStyle = '#c4cba7';
+  g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 52000; i += 1) {
+    const x = random() * S;
+    const y = random() * S;
+    const v = random();
+    g.fillStyle = `rgba(${125 + v * 50},${150 + v * 50},${95 + v * 45},${0.08 + random() * 0.16})`;
+    g.fillRect(x, y, 1 + random() * 1.8, 1 + random() * 4.8);
+  }
+  for (let i = 0; i < 480; i += 1) {
+    const x = random() * S;
+    const y = random() * S;
+    const r = 1 + random() * 2.8;
+    g.fillStyle = `rgba(120,105,82,${0.16 + random() * 0.2})`;
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  const tex = toTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 16;
+  return tex;
+}
+
+/** Light rock detail with strata and cracks, blended in on steep faces. */
+export function makeRockDetailTexture() {
+  const S = 512;
+  const { c, g } = canvas(S, S);
+  const random = createRandom(3319);
+  g.fillStyle = '#c2b6a5';
+  g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 34; i += 1) {
+    const y = random() * S;
+    g.strokeStyle = `rgba(${95 + random() * 40},${80 + random() * 35},${65 + random() * 30},${0.15 + random() * 0.22})`;
+    g.lineWidth = 0.7 + random() * 2.2;
+    g.beginPath();
+    g.moveTo(0, y);
+    for (let x = 0; x <= S; x += 24) g.lineTo(x, y + Math.sin(x * 0.05 + i) * (3 + random() * 9));
+    g.stroke();
+  }
+  for (let i = 0; i < 90; i += 1) {
+    let x = random() * S;
+    let y = random() * S;
+    g.strokeStyle = `rgba(70,60,50,${0.15 + random() * 0.25})`;
+    g.lineWidth = 0.7 + random();
+    g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 4; k += 1) { x += (random() - 0.5) * 22; y += 10 + random() * 26; g.lineTo(x, y); }
+    g.stroke();
+  }
+  for (let i = 0; i < 26000; i += 1) {
+    const v = 130 + random() * 90;
+    g.fillStyle = `rgba(${v},${v - 6},${v - 14},${0.05 + random() * 0.12})`;
+    g.fillRect(random() * S, random() * S, 1 + random() * 2, 1 + random() * 3);
+  }
+  const tex = toTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 16;
+  return tex;
+}
+
 export function makeGroundDetailTexture() {
   const S = 512;
   const { c, g } = canvas(S, S);
@@ -204,6 +270,79 @@ export function makeRunwayTexture() {
 }
 
 /** A roughness/bump companion for the runway: asphalt grain and cracks. */
+
+/** Transparent paint layer drawn over a photographic asphalt runway. */
+export function makeRunwayPaintTexture() {
+  const W = 256;
+  const H = 2048;
+  const { c, g } = canvas(W, H);
+  const random = createRandom(8128);
+  const paint = '#e8e2d2';
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = paint;
+  g.fillRect(10, 24, 5, H - 48);
+  g.fillRect(W - 15, 24, 5, H - 48);
+  for (let y = 150; y < H - 150; y += 74) g.fillRect(W / 2 - 3, y, 6, 40);
+  const keys = (top) => {
+    for (let i = 0; i < 8; i += 1) {
+      const x = 30 + i * 25;
+      g.fillRect(x, top ? 34 : H - 54, 16, 20);
+    }
+  };
+  keys(true); keys(false);
+  for (const side of [0, 1]) {
+    for (let row = 0; row < 3; row += 1) {
+      const y = side === 0 ? 235 + row * 48 : H - 235 - row * 48 - 12;
+      g.fillRect(48, y, 46, 12);
+      g.fillRect(W - 94, y, 46, 12);
+    }
+  }
+  for (const side of [0, 1]) {
+    const y = side === 0 ? 430 : H - 430 - 62;
+    g.fillRect(58, y, 44, 62);
+    g.fillRect(W - 102, y, 44, 62);
+  }
+  g.save();
+  g.translate(W / 2, 122);
+  g.rotate(Math.PI);
+  g.fillStyle = paint;
+  g.font = '700 62px "Helvetica Neue", Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('18', 0, 0);
+  g.restore();
+  g.save();
+  g.translate(W / 2, H - 118);
+  g.fillStyle = paint;
+  g.font = '700 62px "Helvetica Neue", Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('36', 0, 0);
+  g.restore();
+  // Rubber and oil sit on top of the paint, translucent.
+  for (const top of [true, false]) {
+    for (let i = 0; i < 26; i += 1) {
+      const x = 38 + random() * (W - 76);
+      const y = top ? 170 + random() * 190 : H - 360 + random() * 190;
+      g.fillStyle = `rgba(8,8,9,${0.04 + random() * 0.1})`;
+      g.fillRect(x, y, 2 + random() * 9, 12 + random() * 70);
+    }
+  }
+  for (let i = 0; i < 14; i += 1) {
+    const x = 30 + random() * (W - 60);
+    const y = random() * H;
+    const r = 3 + random() * 12;
+    const stain = g.createRadialGradient(x, y, 0, x, y, r);
+    stain.addColorStop(0, 'rgba(9,9,8,0.26)');
+    stain.addColorStop(1, 'rgba(9,9,8,0)');
+    g.fillStyle = stain;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const tex = toTexture(c);
+  tex.anisotropy = 16;
+  return tex;
+}
+
 export function makeAsphaltBump() {
   const W = 256;
   const H = 2048;

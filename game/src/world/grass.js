@@ -38,7 +38,7 @@ export function createGrass() {
   });
   const geo = new THREE.PlaneGeometry(1.8, 1.0);
   geo.translate(0, 0.5, 0);
-  const count = 520;
+  const count = 600;
   const a = new THREE.InstancedMesh(geo, mat, count);
   const b = new THREE.InstancedMesh(geo, mat, count);
   a.name = 'grass-clumps-a';
@@ -52,8 +52,8 @@ export function createGrass() {
   let tries = 0;
   while (placed < count && tries < count * 30) {
     tries += 1;
-    const x = (random() - 0.5) * 2600;
-    const z = (random() - 0.5) * 2600 + 80;
+    const x = (random() - 0.5) * 2200;
+    const z = (random() - 0.5) * 2200 + 80;
     const h = sampleHeight(x, z);
     if (h < 4) continue;
     if (Math.abs(x - WORLD.runway.x) < 44 && Math.abs(z - WORLD.runway.z) < 520) continue;

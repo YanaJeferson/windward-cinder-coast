@@ -80,12 +80,12 @@ export function createWeather({ scene, sky, sea }) {
   const seaUniforms = sea.userData.uniforms;
   let kind = 'clear';
   let flash = 0;
+  let clearBackground = null;
 
   function apply(preset) {
     scene.fog.color.set(preset.fog);
     scene.fog.near = preset.fogNear;
     scene.fog.far = preset.fogFar;
-    scene.background.set(preset.fog);
     dome.material.uniforms.uZenith.value.set(preset.zenith);
     dome.material.uniforms.uHorizon.value.set(preset.horizon);
     dome.material.uniforms.uLow.value.set(preset.low);
@@ -107,7 +107,20 @@ export function createWeather({ scene, sky, sea }) {
     kind = next === 'storm' ? 'storm' : 'clear';
     apply(kind === 'storm' ? STORM : CLEAR);
     rain.lines.visible = kind === 'storm';
-    if (kind === 'storm') flash = 4 + Math.random() * 6;
+    if (scene.userData.clearBackground) clearBackground = scene.userData.clearBackground;
+    if (kind === 'storm') {
+      if (clearBackground && clearBackground.isTexture) {
+        scene.background = clearBackground;
+        scene.backgroundIntensity = 0.28;
+      } else {
+        scene.background = new THREE.Color('#4a555b');
+        scene.backgroundIntensity = 1;
+      }
+      flash = 4 + Math.random() * 6;
+    } else {
+      scene.background = clearBackground ?? new THREE.Color('#c9d5da');
+      scene.backgroundIntensity = 1;
+    }
   }
 
   function update(dt, camera, flight) {

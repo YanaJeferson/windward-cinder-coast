@@ -4,7 +4,7 @@
 [![leaderboard rank](https://make.fun/badge/best-flight-game-20261126-0057/YanaJeferson/windward-cinder-coast/rank.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
 [![reward](https://make.fun/badge/best-flight-game-20261126-0057/YanaJeferson/windward-cinder-coast/reward.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
 
-A complete low-poly coastal flight game for the browser, entered in make.fun's
+A complete coastal flight game for the browser, entered in make.fun's
 [Make the best flight game](https://make.fun/bounty/best-flight-game-20261126-0057) bounty.
 
 Fly the Petrel, a strut-braced bush plane, over the volcanic Cinder Coast: turquoise water,
@@ -19,6 +19,8 @@ node serve.ts
 
 No build step and no network requests: `game/index.html` and every module it loads live in this
 repository. The game runs in desktop Chrome (or any current desktop browser) at 1280×720.
+
+**Assets.** The sky panorama, ground, rock and asphalt textures are CC0 photographic sources credited in [CREDITS.md](./CREDITS.md); the game code, aircraft, terrain shape and HUD are original.
 
 **Controls**
 

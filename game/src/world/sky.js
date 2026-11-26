@@ -150,10 +150,10 @@ export function createSky() {
     group.add(sprite);
   }
 
-  const hemi = new THREE.HemisphereLight('#bdd4e2', '#4a3d2e', 0.95);
+  const hemi = new THREE.HemisphereLight('#d4e6f4', '#5b4a36', 1.35);
   group.add(hemi);
 
-  const sun = new THREE.DirectionalLight('#ffd9a8', 3.65);
+  const sun = new THREE.DirectionalLight('#fff0d2', 3.6);
   sun.position.copy(sunDir).multiplyScalar(4000);
   sun.target.position.set(0, 0, 0);
   group.add(sun);

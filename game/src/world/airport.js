@@ -3,7 +3,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { WORLD } from '../config.js';
 import { sampleHeight } from './terrain.js';
-import { makeApronTexture, makeAsphaltBump, makeHangarTexture, makeRunwayTexture } from '../util/textures.js';
+import { makeApronTexture, makeHangarTexture, makeRunwayPaintTexture } from '../util/textures.js';
 import { radialTexture } from './sky.js';
 
 const E = WORLD.runway.elevation;
@@ -35,15 +35,35 @@ export function createAirport() {
   shoulder.position.set(RWY.x, E + 0.02, RWY.z);
   group.add(shoulder);
 
-  // Runway paint, mapped along the strip.
+  // Photographic asphalt with a separate, crisp paint layer above it.
+  const loader = new THREE.TextureLoader();
+  const asphaltColor = loader.load(new URL('../../assets/asphalt014_color.jpg', import.meta.url).href);
+  asphaltColor.wrapS = THREE.RepeatWrapping;
+  asphaltColor.wrapT = THREE.RepeatWrapping;
+  asphaltColor.repeat.set(2, 30);
+  asphaltColor.colorSpace = THREE.SRGBColorSpace;
+  asphaltColor.anisotropy = 16;
+  const asphaltNormal = loader.load(new URL('../../assets/asphalt014_normal.png', import.meta.url).href);
+  asphaltNormal.wrapS = THREE.RepeatWrapping;
+  asphaltNormal.wrapT = THREE.RepeatWrapping;
+  asphaltNormal.repeat.set(2, 30);
+  asphaltNormal.anisotropy = 8;
   const runway = new THREE.Mesh(
     new THREE.PlaneGeometry(RWY.width, RWY.length),
-    new THREE.MeshStandardMaterial({ map: makeRunwayTexture(), bumpMap: makeAsphaltBump(), bumpScale: 0.045, roughness: 0.92, metalness: 0.02 }),
+    new THREE.MeshStandardMaterial({ map: asphaltColor, normalMap: asphaltNormal, normalScale: new THREE.Vector2(0.7, 0.7), roughness: 0.88, metalness: 0.04 }),
   );
   runway.rotation.x = -Math.PI / 2;
-  runway.position.set(RWY.x, E + 0.22, RWY.z);
+  runway.position.set(RWY.x, E + 0.2, RWY.z);
   runway.receiveShadow = true;
   group.add(runway);
+  const paint = new THREE.Mesh(
+    new THREE.PlaneGeometry(RWY.width, RWY.length),
+    new THREE.MeshStandardMaterial({ map: makeRunwayPaintTexture(), transparent: true, alphaTest: 0.05, roughness: 0.9, metalness: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+  );
+  paint.rotation.x = -Math.PI / 2;
+  paint.position.set(RWY.x, E + 0.24, RWY.z);
+  paint.receiveShadow = true;
+  group.add(paint);
 
   // Apron west of the runway.
   const apron = new THREE.Mesh(

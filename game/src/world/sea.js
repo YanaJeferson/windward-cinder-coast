@@ -16,9 +16,9 @@ export function createSea() {
     uSun: { value: sun },
     uDeep: { value: new THREE.Color('#1e7084') },
     uShallow: { value: new THREE.Color('#63c5ba') },
-    uSky: { value: new THREE.Color('#efcf9f') },
+    uSky: { value: new THREE.Color('#c9d5da') },
     uSunColor: { value: new THREE.Color('#ffd9a0') },
-    uFogColor: { value: new THREE.Color('#ecc59c') },
+    uFogColor: { value: new THREE.Color('#c9d5da') },
     uFogNear: { value: 900 },
     uFogFar: { value: 16000 },
   };

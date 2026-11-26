@@ -68,6 +68,11 @@ export function sampleHeight(x, z) {
   const pad = Math.exp(-(((x / 330) ** 2 + (z / 640) ** 2)) * 2.6);
   h = lerp(h, ELEV, smoothstep(0.1, 0.75, pad));
 
+  // Small undulations in the open field, kept away from the paved surfaces.
+  const flat = 1 - smoothstep(260, 680, Math.max(Math.abs(x), Math.abs(z) * 0.72));
+  const micro = (fbm(x * 0.008, z * 0.008, 3, 777) - 0.5) * 4.2;
+  h += micro * (1 - flat);
+
   // Offshore ground falls away under the water plane, so the coast has a real waterline.
   h -= (1 - coastline(x, z)) * 70;
 
@@ -106,12 +111,12 @@ function vertexColor(h, slope, x, z, out, ao = 1) {
   const patch = fbm(x * 0.0016, z * 0.0016, 3, 71);
   const macro = fbm(x * 0.0055, z * 0.0055, 3, 191);
   let c;
-  if (h < 2.5) c = new THREE.Color(PALETTE.sand).multiplyScalar(0.9 + grain * 0.12);
-  else if (slope > 0.42) c = new THREE.Color(PALETTE.basalt).lerp(new THREE.Color(PALETTE.rock), 0.18 + grain * 0.62);
-  else if (h > 620) c = new THREE.Color(PALETTE.rock).lerp(new THREE.Color('#b7a78e'), (h - 620) / 260 + grain * 0.2);
+  if (h < 2.5) c = new THREE.Color('#e6d6b2').multiplyScalar(0.92 + grain * 0.1);
+  else if (slope > 0.42) c = new THREE.Color('#8a8178').lerp(new THREE.Color('#c3b4a2'), 0.2 + grain * 0.5);
+  else if (h > 620) c = new THREE.Color('#bdb2a2').lerp(new THREE.Color('#ddd5c6'), (h - 620) / 260 + grain * 0.2);
   else {
-    c = new THREE.Color(PALETTE.grass).lerp(new THREE.Color(PALETTE.grassDry), patch * 1.05);
-    if (slope > 0.22) c.lerp(new THREE.Color(PALETTE.rock), smoothstep(0.22, 0.46, slope));
+    c = new THREE.Color('#cfdcb4').lerp(new THREE.Color('#e3d7b8'), patch * 1.05);
+    if (slope > 0.22) c.lerp(new THREE.Color('#c9bba7'), smoothstep(0.22, 0.46, slope));
   }
   const lit = sunBlocked(x, z, h) ? 0.56 : 1;
   const shade = (0.8 + grain * 0.18 + macro * 0.16) * ao * lit;
@@ -155,8 +160,8 @@ export function createTerrain() {
       colors[v * 3] = c.r;
       colors[v * 3 + 1] = c.g;
       colors[v * 3 + 2] = c.b;
-      uvs[v * 2] = x / 48;
-      uvs[v * 2 + 1] = z / 48;
+      uvs[v * 2] = x / 16;
+      uvs[v * 2 + 1] = z / 16;
       v += 1;
     }
   }
@@ -180,16 +185,50 @@ export function createTerrain() {
   geo.computeVertexNormals();
   geo.computeBoundingSphere();
 
+  const loader = new THREE.TextureLoader();
+  const load = (name, srgb) => {
+    const tex = loader.load(new URL(`../../assets/${name}`, import.meta.url).href);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = 16;
+    if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  };
+  const grass = load('grass001_color.jpg', true);
+  const rock = load('rock030_color.jpg', true);
   const detail = makeGroundDetailTexture();
   const mat = new THREE.MeshStandardMaterial({
     vertexColors: true,
     map: detail,
     bumpMap: detail,
-    bumpScale: 0.55,
+    bumpScale: 0.45,
     flatShading: false,
     roughness: 0.97,
     metalness: 0,
   });
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uGrass = { value: grass };
+    shader.uniforms.uRock = { value: rock };
+    shader.uniforms.uMacro = { value: detail };
+    shader.vertexShader = 'varying float vSlope;\nvarying float vHeight;\n' + shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nvSlope = 1.0 - abs(normal.y);\nvHeight = position.y;',
+    );
+    shader.fragmentShader = 'uniform sampler2D uGrass;\nuniform sampler2D uRock;\nuniform sampler2D uMacro;\nvarying float vSlope;\nvarying float vHeight;\n' + shader.fragmentShader.replace(
+      '#include <map_fragment>',
+      `
+        vec3 gcol = texture2D(uGrass, vMapUv * 0.62).rgb;
+        vec3 rcol = texture2D(uRock, vMapUv * 1.25).rgb;
+        float macro = texture2D(uMacro, vMapUv * 0.055).r;
+        float rockMix = max(smoothstep(0.22, 0.48, vSlope), smoothstep(170.0, 520.0, vHeight) * 0.85);
+        vec3 terrainColor = mix(gcol, rcol, rockMix);
+        vec3 macroTint = mix(vec3(0.72, 0.7, 0.56), vec3(1.28, 1.18, 0.96), smoothstep(0.32, 0.78, macro));
+        terrainColor *= macroTint;
+        vec4 sampledDiffuseColor = vec4(terrainColor, 1.0);
+        diffuseColor.rgb *= sampledDiffuseColor.rgb * 1.18 * vec3(1.08, 1.04, 0.94);
+      `,
+    );
+  };
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
   mesh.castShadow = false;

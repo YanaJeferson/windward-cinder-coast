@@ -37,7 +37,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.28;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -50,6 +50,33 @@ camera.position.set(0, 240, 3000);
 
 const sky = createSky();
 scene.add(sky);
+// A photographic sky replaces the painted dome for depth and cloud detail.
+for (const child of sky.children) {
+  if (!child.isLight) child.visible = false;
+}
+{
+  const img = new Image();
+  img.src = new URL('../assets/sky_top.jpg', import.meta.url).href;
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = 2048; c.height = 1024;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0, 2048, 512);
+    const grad = g.createLinearGradient(0, 512, 0, 1024);
+    grad.addColorStop(0, '#c8d6de');
+    grad.addColorStop(0.25, '#d6d8d0');
+    grad.addColorStop(1, '#d9d3c2');
+    g.fillStyle = grad;
+    g.fillRect(0, 512, 2048, 512);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.userData.clearBackground = tex;
+    scene.background = tex;
+    scene.backgroundIntensity = weather.kind === 'clear' ? 1.0 : 0.28;
+    scene.fog.color.set('#c9d5da');
+  };
+}
 const sunLight = sky.userData.sun;
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.set(512, 512);
@@ -71,8 +98,10 @@ airport.traverse((o) => {
 });
 scene.add(airport);
 scene.add(createVegetation());
+// Grass clumps are kept for close ground views; the terrain shader supplies the field detail.
 const grass = createGrass();
-scene.add(grass.a, grass.b);
+grass.a.visible = false;
+grass.b.visible = false;
 
 const weather = createWeather({ scene, sky, sea });
 const plane = createAircraft();
@@ -623,7 +652,7 @@ function stageShot(name) {
     cover: { mission: 2, position: [-20, 124, 1500], heading: 1, speed: 58, roll: -0.1, pitch: 0.015, camera: 'hero', gate: 0 },
     cockpit: { mission: 2, position: [10, 190, 1700], heading: 0, speed: 57, roll: 0.0, pitch: 0.03, camera: 'cockpit', gate: 0 },
     canyon: { mission: 3, position: [canyonPoint(-1000), 0, -1000], heading: 358, speed: 72, roll: -0.05, pitch: 0.01, camera: 'chase', gate: 4 },
-    landing: { mission: 2, position: [-8, 64, 624], heading: 0, speed: 46, roll: 0.0, pitch: -0.04, camera: 'hero', gate: 5 },
+    landing: { mission: 2, position: [-8, 54, 610], heading: 0, speed: 46, roll: 0.0, pitch: -0.04, camera: 'hero', gate: 5 },
     storm: { mission: 6, position: [0, 210, 2300], heading: 0, speed: 60, roll: -0.04, pitch: 0.02, camera: 'hero', gate: 0 },
   };
   const setup = setups[name];
@@ -750,6 +779,7 @@ window.addEventListener('mousedown', () => audio.start(), { once: true });
 toTitle();
 if (staged) {
   screen = SCREENS.FLY;
+  weather.set(mission?.weather ?? 'clear');
   rig.setMode(shot === 'cockpit' ? 'cockpit' : shot === 'canyon' ? 'chase' : 'hero');
   setCockpitShell(shot === 'cockpit');
 }
