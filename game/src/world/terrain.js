@@ -224,6 +224,7 @@ export function createTerrain() {
     if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   };
+  const snowUniform = { value: 0 };
   const grass = load('grass001_color.jpg', true);
   const rock = load('rock030_color.jpg', true);
   const detail = makeGroundDetailTexture();
@@ -237,6 +238,7 @@ export function createTerrain() {
     metalness: 0,
   });
   mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uSnow = snowUniform;
     shader.uniforms.uGrass = { value: grass };
     shader.uniforms.uRock = { value: rock };
     shader.uniforms.uMacro = { value: detail };
@@ -244,7 +246,7 @@ export function createTerrain() {
       '#include <begin_vertex>',
       '#include <begin_vertex>\nvSlope = 1.0 - abs(normal.y);\nvHeight = position.y;',
     );
-    shader.fragmentShader = 'uniform sampler2D uGrass;\nuniform sampler2D uRock;\nuniform sampler2D uMacro;\nvarying float vSlope;\nvarying float vHeight;\n' + shader.fragmentShader.replace(
+    shader.fragmentShader = 'uniform sampler2D uGrass;\nuniform sampler2D uRock;\nuniform sampler2D uMacro;\nuniform float uSnow;\nvarying float vSlope;\nvarying float vHeight;\n' + shader.fragmentShader.replace(
       '#include <map_fragment>',
       `
         vec3 gcol = texture2D(uGrass, vMapUv * 0.62).rgb;
@@ -256,6 +258,7 @@ export function createTerrain() {
         terrainColor *= macroTint;
         vec4 sampledDiffuseColor = vec4(terrainColor, 1.0);
         diffuseColor.rgb *= sampledDiffuseColor.rgb * 1.18 * vec3(1.08, 1.04, 0.94);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.94, 0.97), uSnow * 0.92);
       `,
     );
   };
@@ -263,6 +266,7 @@ export function createTerrain() {
   mesh.receiveShadow = true;
   mesh.castShadow = false;
   mesh.name = 'cinder-coast-terrain';
+  mesh.userData.snowUniform = snowUniform;
   return mesh;
 }
 

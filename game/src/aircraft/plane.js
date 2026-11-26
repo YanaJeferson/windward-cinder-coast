@@ -414,6 +414,13 @@ export function createAircraft() {
     }
   }
 
-  group.userData = { propeller, propDisc, flaps, gear, wing, body, canopy, canopyFrame, ailerons, elevators, rudder: rudderHinge };
+  const landingLight = new THREE.SpotLight('#fff0d0', 55, 700, 0.38, 0.5, 1.3);
+  landingLight.name = 'petrel-landing-light';
+  landingLight.position.set(0, -0.35, -4.1);
+  landingLight.target.position.set(0, -3.5, -90);
+  landingLight.visible = false;
+  group.add(landingLight, landingLight.target);
+
+  group.userData = { propeller, propDisc, flaps, gear, wing, body, canopy, canopyFrame, ailerons, elevators, rudder: rudderHinge, landingLight };
   return group;
 }

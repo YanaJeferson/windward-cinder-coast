@@ -360,6 +360,11 @@ export function createHud(canvas) {
       g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
       g.fillText(`ENGINE ${state.engine}`, 34 * s, 84 * s);
     }
+    if (state.weatherLabel) {
+      g.fillStyle = 'rgba(255,241,210,0.5)';
+      g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
+      g.fillText(`WX ${state.weatherLabel}`, 34 * s, 100 * s);
+    }
 
     compass(g, cx, 22 * s, flight.heading);
     if (!state.compact) {

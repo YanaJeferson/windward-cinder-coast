@@ -13,6 +13,8 @@ export const ACTIONS = {
   FLIGHTMODE: 256,
   ENGINE: 512,
   PARK: 1024,
+  WEATHER_NEXT: 2048,
+  WEATHER_PREV: 4096,
 };
 
 // Letters by their printed key, for keyboards whose physical layout is not QWERTY.
@@ -21,7 +23,7 @@ const KEY_TO_CODE = {
   i: 'KeyI', j: 'KeyJ', k: 'KeyK', l: 'KeyL',
   c: 'KeyC', g: 'KeyG', f: 'KeyF', m: 'KeyM', p: 'KeyP', r: 'KeyR', h: 'KeyH', v: 'KeyV', x: 'KeyX', b: 'KeyB',
   arrowup: 'ArrowUp', arrowdown: 'ArrowDown', arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
-  ' ': 'Space', enter: 'Enter', escape: 'Escape',
+  ' ': 'Space', enter: 'Enter', escape: 'Escape', '[': 'BracketLeft', ']': 'BracketRight',
 };
 
 function codesFor(event) {
@@ -57,6 +59,8 @@ export function createInput(canvas) {
     KeyV: ACTIONS.FLIGHTMODE,
     KeyX: ACTIONS.ENGINE,
     KeyB: ACTIONS.PARK,
+    BracketRight: ACTIONS.WEATHER_NEXT,
+    BracketLeft: ACTIONS.WEATHER_PREV,
   };
 
   // Capture on window so a focused element inside the page cannot swallow a flight key.

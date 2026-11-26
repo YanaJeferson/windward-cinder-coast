@@ -40,14 +40,14 @@ export function createCameraRig(camera) {
     up.set(0, 1, 0).applyQuaternion(flight.quaternion);
 
     if (mode === 'cockpit') {
-      local.set(0.3, 1.1, -0.3).applyQuaternion(flight.quaternion);
+      local.set(0.3, 1.13, -0.38).applyQuaternion(flight.quaternion);
       desired.copy(flight.position).add(local);
       camera.position.copy(desired);
       const target = flight.position.clone().addScaledVector(fwd, 26);
-      target.y -= 1.55;
+      target.y -= 0.7;
       camera.up.copy(up);
       camera.lookAt(target);
-      camera.fov = damp(camera.fov, 72, 6, dt);
+      camera.fov = damp(camera.fov, 68, 5, dt);
       camera.updateProjectionMatrix();
       return;
     }
@@ -123,12 +123,12 @@ export function createCameraRig(camera) {
     // Speed and load breathe through the lens.
     const speedFov = 58 + clamp((flight.speed - 40) / 55, 0, 1) * 7;
     camera.fov = damp(camera.fov, speedFov, 3, dt);
-    const targetShake = flight.stall ? 0.22 : flight.overspeed ? 0.12 : 0.035 + Math.min(flight.gLoad, 3) * 0.01;
+    const targetShake = flight.stall ? 0.035 : flight.overspeed ? 0.02 : 0.004 + Math.min(flight.gLoad, 3) * 0.0015;
     shakeAmount = damp(shakeAmount, targetShake, 4, dt);
     shake.set(
-      Math.sin(time * 37.1) * shakeAmount,
-      Math.sin(time * 43.7 + 1.7) * shakeAmount * 0.7,
-      Math.sin(time * 29.3 + 0.6) * shakeAmount * 0.4,
+      Math.sin(time * 8.1) * shakeAmount,
+      Math.sin(time * 11.3 + 1.7) * shakeAmount * 0.7,
+      Math.sin(time * 6.7 + 0.6) * shakeAmount * 0.4,
     );
     camera.position.add(shake);
     camera.updateProjectionMatrix();

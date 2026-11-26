@@ -10,7 +10,7 @@ import { createVegetation } from './world/vegetation.js';
 import { createGrass } from './world/grass.js';
 import { createFields } from './world/fields.js';
 import { createCrashEffects } from './game/effects.js';
-import { createWeather, windVector } from './world/weather.js';
+import { createWeather, windVector, WEATHER_CHOICES, WEATHER_LABELS } from './world/weather.js';
 import { createGates, createBeacon, updateGates } from './world/gates.js';
 import { createAircraft } from './aircraft/plane.js';
 import { createCockpit } from './aircraft/cockpit.js';
@@ -161,6 +161,7 @@ sceneCanvas.focus();
 
 let screen = SCREENS.TITLE;
 let selected = 1;
+let weatherChoice = 'auto';
 let mission = null;
 let activeGroup = null;
 let activeGates = [];
@@ -197,6 +198,24 @@ setHeading(titleFlight, 318);
 
 function announce(text) {
   statusEl.textContent = text;
+}
+
+function resolveWeather() {
+  if (weatherChoice !== 'auto') return weatherChoice;
+  if (screen === SCREENS.TITLE || !mission) return 'sunny';
+  const w = mission.def.weather ?? 'sunny';
+  return w === 'clear' ? 'sunny' : w;
+}
+
+function applyWeather() {
+  weather.set(resolveWeather());
+}
+
+function cycleWeather(direction) {
+  const i = WEATHER_CHOICES.indexOf(weatherChoice);
+  weatherChoice = WEATHER_CHOICES[(i + direction + WEATHER_CHOICES.length) % WEATHER_CHOICES.length];
+  applyWeather();
+  announce(`Weather ${WEATHER_LABELS[weatherChoice]}.`);
 }
 
 function selectMission(index) {
@@ -238,7 +257,7 @@ function beginMission(index) {
   plane.visible = true;
   crashStarted = false;
   crashFlash = 0;
-  weather.set(def.weather ?? 'clear');
+  applyWeather();
   setHeading(flight.state, s.heading);
   flight.state.heading = s.heading;
   rig.snap(flight.state);
@@ -274,7 +293,8 @@ function toTitle() {
   plane.visible = true;
   cockpit.group.visible = false;
   setCockpitShell(false);
-  weather.set('clear');
+  weather.set(weatherChoice === 'auto' ? 'sunny' : weatherChoice);
+  effects.clear();
   rig.setMode('orbit');
   announce('Windward: Cinder Coast. Choose a sortie.');
 }
@@ -282,13 +302,19 @@ function toTitle() {
 function handleInput() {
   const actions = input.takeActions();
   if (screen === SCREENS.TITLE) {
+    if (actions & ACTIONS.WEATHER_NEXT) cycleWeather(1);
+    if (actions & ACTIONS.WEATHER_PREV) cycleWeather(-1);
     if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) selectMission(selected - 1);
     if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) selectMission(selected + 1);
     if (actions & ACTIONS.CONFIRM) beginMission(selected);
   } else if (screen === SCREENS.BRIEF) {
+    if (actions & ACTIONS.WEATHER_NEXT) cycleWeather(1);
+    if (actions & ACTIONS.WEATHER_PREV) cycleWeather(-1);
     if (actions & ACTIONS.CONFIRM) startFlying();
     if (actions & ACTIONS.PAUSE) toTitle();
   } else if (screen === SCREENS.FLY) {
+    if (actions & ACTIONS.WEATHER_NEXT) cycleWeather(1);
+    if (actions & ACTIONS.WEATHER_PREV) cycleWeather(-1);
     if (actions & ACTIONS.PAUSE) screen = SCREENS.PAUSE;
     if (actions & ACTIONS.CAMERA) {
       const order = ['chase', 'cockpit', 'wing'];
@@ -325,7 +351,7 @@ function stepFlight(dt) {
   stick.yaw = a.yaw;
   flight.state.throttle = clamp(flight.state.throttle + input.throttleDelta(dt), 0, 1);
   const controls = { ...a, throttle: flight.state.throttle };
-  flight.update(dt, controls, windVector(mission?.wind, time));
+  flight.update(dt, controls, windVector(weather.wind, time));
   audio.update(flight.state, dt);
   elapsed += dt;
   time += dt;
@@ -365,6 +391,7 @@ function updateTitle(dt) {
   plane.userData.propeller.rotation.z += dt * 26;
   plane.userData.propDisc.rotation.z += dt * 3;
   rig.update(titleFlight, dt, time);
+  weather.update(dt, camera, titleFlight);
   cockpit.group.visible = false;
 }
 
@@ -496,7 +523,8 @@ function renderFrame(dt) {
         gateScreen: activeGateScreen(),
         warnings: warnings(),
         radio: mission?.radio,
-        wind: mission?.wind,
+        wind: weather.wind,
+        weatherLabel: weather.label,
         flash: crashFlash,
         engine: flight.state.engineOn ? (flight.state.engineStarting > 0 ? 'START' : 'ON') : 'OUT',
         touchdown: flight.state.onGround && flight.state.touchdownAt !== null && flight.state.time - flight.state.touchdownAt < 4
@@ -602,9 +630,12 @@ function drawTitle(g, W, H, s) {
     g.fillText(m.objective, x + 44 * s, y + 17 * s);
   });
 
+  g.fillStyle = 'rgba(255,241,210,0.55)';
+  g.font = `600 ${10.5 * s}px "SF Mono", Consolas, monospace`;
+  g.fillText(`WEATHER  ${WEATHER_LABELS[weatherChoice]}`, x, H - 70 * s);
   g.fillStyle = 'rgba(255,241,210,0.45)';
   g.font = `500 ${10.5 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('↑ ↓ SELECT     ENTER FLY     MOUSE FLY · WHEEL THROTTLE', x, H - 46 * s);
+  g.fillText('↑ ↓ SELECT   ENTER FLY   [ ] WEATHER   MOUSE FLY · WHEEL THROTTLE', x, H - 46 * s);
   g.textAlign = 'right';
   g.fillStyle = 'rgba(255,241,210,0.28)';
   g.fillText('A MAKE.FUN FLIGHT GAME', W - 34 * s, H - 46 * s);
@@ -637,7 +668,7 @@ function drawBrief(g, W, H, s) {
   const rings = mission.gates.length ? `${mission.gates.length} RINGS` : 'NO RINGS';
   const clock = mission.timeLimit !== null ? formatTime(mission.timeLimit) : 'NO CLOCK';
   const finish = mission.def.landing ? 'LANDING REQUIRED' : 'TIMED RUN';
-  const wx = mission.weather === 'storm' ? 'STORM' : 'CLEAR';
+  const wx = weather.label;
   g.fillText(`${rings}   ${clock}   ${finish}   ${wx}`, x + 38 * s, y + h - 96 * s);
   g.fillStyle = PALETTE.amber;
   g.font = `700 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
@@ -645,7 +676,7 @@ function drawBrief(g, W, H, s) {
   g.fillStyle = 'rgba(255,241,210,0.4)';
   g.font = `500 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
   g.font = `500 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · SHIFT THROTTLE · X ENGINE · B PARK · G GEAR · F FLAPS · C CAMERA · V ASSIST', x + 38 * s, y + h - 38 * s);
+  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · SHIFT THROTTLE · X ENGINE · B PARK · G GEAR · F FLAPS · C CAMERA · V ASSIST · [ ] WEATHER', x + 38 * s, y + h - 38 * s);
 }
 
 function drawPause(g, W, H, s) {
@@ -776,7 +807,8 @@ function frame(now) {
       warnings: [],
       radio: shot === 'cockpit' ? null : mission.radio,
       compact: shot === 'cockpit',
-      wind: mission.wind,
+      wind: weather.wind,
+      weatherLabel: weather.label,
     });
     renderer.render(scene, camera);
     window.__shotFrames = (window.__shotFrames ?? 0) + 1;
