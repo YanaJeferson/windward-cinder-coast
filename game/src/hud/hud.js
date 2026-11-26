@@ -290,16 +290,16 @@ export function createHud(canvas) {
       g.fillText(`${Math.round(value)}${unit}`, x + w - 10 * s, ry);
     });
     // Gear and flap pills.
-    const pills = [['GEAR', flight.gearDown, TEAL], ['FLAP', flight.flaps > 0.4, AMBER]];
+    const pills = [['GEAR', flight.gearDown, TEAL], ['FLAP', flight.flaps > 0.4, AMBER], ['PARK', flight.parkingBrake, WARN]];
     pills.forEach(([label, on, color], i) => {
-      const px = x + 8 * s + i * 58 * s;
-      roundRect(g, px, y + 90 * s - 22 * s, 50 * s, 15 * s, 3);
+      const px = x + 8 * s + i * 50 * s;
+      roundRect(g, px, y + 90 * s - 22 * s, 44 * s, 15 * s, 3);
       g.fillStyle = on ? color : 'rgba(255,241,210,0.08)';
       g.fill();
       g.fillStyle = on ? '#101618' : DIM;
-      g.font = `700 ${8.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+      g.font = `700 ${8 * s}px "Helvetica Neue", Arial, sans-serif`;
       g.textAlign = 'center';
-      g.fillText(label, px + 25 * s, y + 90 * s - 11.5 * s);
+      g.fillText(label, px + 22 * s, y + 90 * s - 11.5 * s);
     });
   }
 
@@ -354,6 +354,11 @@ export function createHud(canvas) {
       g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
       const w = state.wind;
       g.fillText(`WIND ${pad(w.from, 3)}° / ${Math.round(w.speed)} KT${w.gust ? ' G' + Math.round(w.gust) : ''}`, 34 * s, 68 * s);
+    }
+    if (state.engine) {
+      g.fillStyle = state.engine === 'OUT' ? AMBER : state.engine === 'START' ? TEAL : 'rgba(255,241,210,0.55)';
+      g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
+      g.fillText(`ENGINE ${state.engine}`, 34 * s, 84 * s);
     }
 
     compass(g, cx, 22 * s, flight.heading);
@@ -410,6 +415,17 @@ export function createHud(canvas) {
       g.fill();
       g.fillStyle = state.groundPrompt.color;
       g.fillText(text, cx, H - 218 * s);
+    }
+
+    if (state.touchdown) {
+      g.textAlign = 'center';
+      g.fillStyle = 'rgba(10,16,18,0.66)';
+      g.font = `700 ${12 * s}px "SF Mono", Consolas, monospace`;
+      const tw = g.measureText(state.touchdown).width + 30 * s;
+      roundRect(g, cx - tw / 2, H - 280 * s, tw, 28 * s, 4);
+      g.fill();
+      g.fillStyle = PALETTE.teal;
+      g.fillText(state.touchdown, cx, H - 261 * s);
     }
 
     // First seconds of a sortie: show which keys the game is actually seeing.

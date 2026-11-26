@@ -80,10 +80,10 @@ export function createAudio() {
   function update(flight, dt) {
     if (!started || muted) return;
     const now = ctx.currentTime;
-    const throttle = flight.throttle;
-    const rpm = 620 + throttle * 1650;
-    engine.frequency.setTargetAtTime(rpm / 16.5, now, 0.12);
-    engineGain.gain.setTargetAtTime(0.034 + throttle * 0.05, now, 0.15);
+    const throttle = flight.engineOn ? flight.throttle : 0;
+    const rpm = flight.engineOn ? 620 + throttle * 1650 : 0;
+    engine.frequency.setTargetAtTime(Math.max(24, rpm / 16.5), now, 0.12);
+    engineGain.gain.setTargetAtTime(flight.engineOn ? 0.034 + throttle * 0.05 : 0, now, 0.25);
     const wind = Math.min(1, flight.speed / 95);
     windGain.gain.setTargetAtTime(0.016 + wind * 0.07, now, 0.2);
     windFilter.frequency.setTargetAtTime(340 + wind * 900, now, 0.2);

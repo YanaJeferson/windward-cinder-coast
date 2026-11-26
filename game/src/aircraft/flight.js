@@ -29,6 +29,12 @@ export function createFlight(initial = {}) {
     heading: 0,
     gLoad: 1,
     assist: true,
+    engineOn: true,
+    engineStarting: 0,
+    parkingBrake: false,
+    touchdownRate: 0,
+    touchdownAt: null,
+    landingGrade: null,
     lastY: 0,
     time: 0,
     ...initial,
@@ -56,6 +62,10 @@ export function createFlight(initial = {}) {
   function update(dt, controls, wind = null) {
     if (state.crashed) return;
     state.time += dt;
+    if (state.engineStarting > 0) {
+      state.engineStarting = Math.max(0, state.engineStarting - dt);
+      if (state.engineStarting === 0) state.engineOn = true;
+    }
     const a = axes();
     const speedFactor = clamp(state.speed / AIRCRAFT.cruiseSpeed, 0.25, 1.45);
     const authority = state.onGround ? 0.35 : smoothstep(AIRCRAFT.minSpeed, AIRCRAFT.stallSpeed + 8, state.speed);
@@ -98,16 +108,18 @@ export function createFlight(initial = {}) {
       // Throttle and energy.
       const throttleTarget = clamp(controls.throttle, 0, 1);
       state.throttle = damp(state.throttle, throttleTarget, 4.5, dt);
-      const thrust = state.fuel > 0 ? (0.12 + state.throttle * 0.88) * AIRCRAFT.maxThrust : 0;
+      const thrust = state.engineOn && state.fuel > 0 ? (0.12 + state.throttle * 0.88) * AIRCRAFT.maxThrust : 0;
       const gearDrag = state.gearDown ? 1.22 : 1;
       const flapDrag = 1 + state.flaps * 0.16;
-      const drag = AIRCRAFT.drag * state.speed * state.speed * gearDrag * flapDrag;
+      const propDrag = state.engineOn ? 1 : 0.55;
+      const drag = AIRCRAFT.drag * state.speed * state.speed * gearDrag * flapDrag * propDrag;
       const gravityAlong = -WORLD.gravity * a.fwd.y * 0.9;
       const trim = state.assist ? 1 : 0.86;
       state.speed += (thrust - drag + gravityAlong) * trim * dt;
       state.speed = clamp(state.speed, AIRCRAFT.minSpeed, AIRCRAFT.maxSpeed + 8);
 
-      state.fuel = Math.max(0, state.fuel - AIRCRAFT.fuelBurn * (0.22 + state.throttle * 0.78) * dt);
+      if (state.engineOn) state.fuel = Math.max(0, state.fuel - AIRCRAFT.fuelBurn * (0.3 + state.throttle * 0.7) * dt);
+      if (state.fuel <= 0) state.engineOn = false;
 
       // Stall: the nose falls and the wing stops carrying.
       state.stall = state.speed < AIRCRAFT.stallSpeed && Math.abs(controls.pitch) < 0.9;
@@ -123,6 +135,7 @@ export function createFlight(initial = {}) {
 
       state.position.addScaledVector(a.fwd, state.speed * dt);
       if (wind) state.position.addScaledVector(wind, dt);
+      if (!state.engineOn) state.position.y -= (1.6 + Math.max(0, AIRCRAFT.cruiseSpeed - state.speed) * 0.02) * dt;
       state.overspeed = state.speed > AIRCRAFT.maxSpeed;
       state.gLoad = 1 + Math.abs(rate.pitch) * state.speed * 0.055;
     }
@@ -134,7 +147,12 @@ export function createFlight(initial = {}) {
         const runway = Math.abs(state.position.x - WORLD.runway.x) < WORLD.runway.width / 2 + 3
           && Math.abs(state.position.z - WORLD.runway.z) < WORLD.runway.length / 2 + 10;
         const descent = (state.position.y - state.lastY) / Math.max(dt, 1e-4);
-        if (runway && state.gearDown && state.speed < 78 && descent > -7.5) {
+        if (runway && state.gearDown && state.speed < 78 && descent > -9) {
+          const rate = Math.abs(descent);
+          state.touchdownRate = rate;
+          state.touchdownAt = state.time;
+          state.landingGrade = rate < 2.2 ? 'SMOOTH' : rate < 4.5 ? 'FIRM' : 'HARD';
+          if (rate > 6.5) state.damage = Math.min(AIRCRAFT.maxDamage, state.damage + (rate - 6.5) * 9);
           state.onGround = true;
           state.position.y = WORLD.runway.elevation + 1.55;
           state.quaternion.setFromEuler(new THREE.Euler(0, -THREE.MathUtils.degToRad(headingOf(state.quaternion)), 0));
@@ -158,11 +176,17 @@ export function createFlight(initial = {}) {
 
   function updateGround(dt, controls, a) {
     state.throttle = damp(state.throttle, clamp(controls.throttle, 0, 1), 4.5, dt);
-    const thrust = state.fuel > 0 ? state.throttle * AIRCRAFT.maxThrust * 0.72 : 0;
-    const rolling = 0.85 + (controls.brake ? 4.8 : 0);
+    if (state.parkingBrake) {
+      state.speed = 0;
+      state.position.y = WORLD.runway.elevation + 1.55;
+      return;
+    }
+    const thrust = state.engineOn && state.fuel > 0 ? state.throttle * AIRCRAFT.maxThrust * 0.72 : 0;
+    const rolling = 0.85 + (controls.brake ? 6.5 : 0);
     state.speed += (thrust - rolling) * dt;
-    state.speed = clamp(state.speed, 0, 52);
-    state.fuel = Math.max(0, state.fuel - AIRCRAFT.fuelBurn * (0.3 + state.throttle * 0.7) * dt);
+    state.speed = Math.max(0, clamp(state.speed, 0, 52));
+    if (state.engineOn) state.fuel = Math.max(0, state.fuel - AIRCRAFT.fuelBurn * (0.3 + state.throttle * 0.7) * dt);
+    if (state.fuel <= 0) state.engineOn = false;
 
     // Nosewheel steering at taxi speed, rudder authority at takeoff speed.
     const steer = controls.yaw * clamp(1 - state.speed / 40, 0.15, 1);
@@ -183,7 +207,21 @@ export function createFlight(initial = {}) {
     }
   }
 
-  return { state, update, axes };
+  function toggleEngine() {
+    if (state.engineOn || state.engineStarting > 0) {
+      state.engineOn = false;
+      state.engineStarting = 0;
+    } else if (state.fuel > 0) {
+      state.engineStarting = 1.4;
+    }
+  }
+
+  function toggleParkingBrake() {
+    state.parkingBrake = !state.parkingBrake;
+    if (state.parkingBrake) state.speed = 0;
+  }
+
+  return { state, update, axes, toggleEngine, toggleParkingBrake };
 }
 
 export function setHeading(state, headingDeg) {

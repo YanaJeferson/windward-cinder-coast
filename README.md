@@ -32,6 +32,8 @@ repository. The game runs in desktop Chrome (or any current desktop browser) at 
 | Mouse (click to capture) | fly the aircraft |
 | `C` | chase / cockpit / wing camera |
 | `G` | landing gear |
+| `X` | engine start / stop (glide when off) |
+| `B` | parking brake |
 | `F` | flaps |
 | `Space` | wheel brakes |
 | `P` | pause |
@@ -48,14 +50,19 @@ repository. The game runs in desktop Chrome (or any current desktop browser) at 
 5. **The Long Way Home** — find the flare off the stacks on a tank that is nearly dry, then land.
 6. **Ring Sprint** — eight rings around the whole island, flat out, no landing.
 7. **Storm Front** — a crosswind landing in rain with a gusting front over the strip.
+8. **Deadstick** — the engine quits over the strait; glide four kilometres to 36 and land.
 
 `C` cycles the chase, cockpit and wing cameras. `V` switches between the forgiving assisted
 envelope and the heavier Pro envelope.
 
 The flight model keeps energy honest: throttle and climb trade speed, bank bends the flight
-path, the wing stalls below 30 m/s, fuel burns, and a hard arrival ends the sortie. Landings
-need gear, a shallow descent and a runway; the mission card, HUD tapes, PAPI lights and
-approach lights lead you home.
+path, the wing stalls below 30 m/s, fuel burns, and a hard arrival ends the sortie.
+
+**Systems.** The engine starts and stops with `X` (with a short starter crank); with it off the
+Petrel glides, the propeller windmills and the HUD calls the glide speed. `Space` is wheel brake,
+`B` is the parking brake. Landings need gear, a shallow descent and a runway; the touchdown is
+graded (smooth, firm or hard) and a heavy arrival damages the airframe. The mission card, HUD
+tapes, PAPI lights and approach lights lead you home.
 
 ## Layout
 

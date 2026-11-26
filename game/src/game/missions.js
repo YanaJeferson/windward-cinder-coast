@@ -33,8 +33,8 @@ export function createMissions() {
       name: 'First Solo',
       kind: 'training',
       objective: 'Take off, fly the circuit, land on 36',
-      brief: 'A checkout flight with the chief pilot watching from the shed. Take off from 36, fly the three circuit rings and bring her back for a full-stop landing. Throttle up, keep the ball centred.',
-      start: { x: 0, y: WORLD.runway.elevation + 1.55, z: 420, heading: 0, speed: 0, fuel: 70, ground: true, gear: true, throttle: 1 },
+      brief: 'A checkout flight with the chief pilot watching from the shed. Engine off, parking brake set: press X to start, B to release the brake, then take off from 36, fly the three circuit rings and bring her back for a full-stop landing.',
+      start: { x: 0, y: WORLD.runway.elevation + 1.55, z: 420, heading: 0, speed: 0, fuel: 70, ground: true, gear: true, throttle: 1, engineOff: true, parking: true },
       timeLimit: 420,
       landing: true,
       weather: 'clear',
@@ -187,6 +187,22 @@ export function createMissions() {
       radio: {
         start: ['TOWER', 'Wind two five zero, one eight gusting two six. Runway 36, cleared to land.'],
         land: ['TOWER', 'On the ground. Get out of the rain.'],
+      },
+    },
+    {
+      id: 'deadstick',
+      name: 'Deadstick',
+      kind: 'challenge',
+      objective: 'Glide to 36 and land with no engine',
+      brief: 'The engine quit over the strait with the strip still four kilometres out. There is no fuel and no restart. Fly the glide, keep 75 knots, and put the Petrel on 36 without bending it.',
+      start: { x: 0, y: 900, z: 4000, heading: 0, speed: 56, fuel: 0, engineOff: true },
+      timeLimit: null,
+      landing: true,
+      weather: 'clear',
+      gates: [],
+      radio: {
+        start: ['TOWER', 'Petrel, we have you gliding. Runway 36 is clear. Best glide, seventy-five knots.'],
+        land: ['TOWER', 'Deadstick on the numbers. That is a landing.'],
       },
     },
   ];

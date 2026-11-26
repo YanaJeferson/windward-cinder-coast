@@ -149,6 +149,11 @@ function beginMission(index) {
   flight.state.stopped = false;
   flight.state.vertical = 0;
   flight.state.lastY = s.y;
+  flight.state.engineOn = !s.engineOff;
+  flight.state.engineStarting = 0;
+  flight.state.parkingBrake = Boolean(s.parking);
+  flight.state.touchdownAt = null;
+  flight.state.landingGrade = null;
   weather.set(def.weather ?? 'clear');
   setHeading(flight.state, s.heading);
   flight.state.heading = s.heading;
@@ -207,6 +212,12 @@ function handleInput() {
       cockpit.group.visible = rig.mode === 'cockpit';
     }
     if (actions & ACTIONS.FLIGHTMODE) flight.state.assist = !flight.state.assist;
+    if (actions & ACTIONS.ENGINE) {
+      const wasOff = !flight.state.engineOn;
+      flight.toggleEngine();
+      if (wasOff && flight.state.engineStarting > 0) audio.tone(150, 0.5, 0.05, 'sawtooth');
+    }
+    if (actions & ACTIONS.PARK) flight.toggleParkingBrake();
     if (actions & ACTIONS.GEAR) flight.state.gearDown = !flight.state.gearDown;
     if (actions & ACTIONS.FLAPS) flight.state.flaps = flight.state.flaps > 0.7 ? 0 : flight.state.flaps > 0.2 ? 1 : 0.5;
     if (actions & ACTIONS.MUTE) audio.toggleMute();
@@ -228,6 +239,7 @@ function stepFlight(dt) {
   flight.state.throttle = clamp(flight.state.throttle + input.throttleDelta(dt), 0, 1);
   const controls = { ...a, throttle: flight.state.throttle };
   flight.update(dt, controls, windVector(mission?.wind, time));
+  audio.update(flight.state, dt);
   elapsed += dt;
   time += dt;
 
@@ -279,6 +291,12 @@ function groundPrompt() {
   const f = flight.state;
   if (!f.onGround || screen !== SCREENS.FLY) return null;
   const kt = speedKts(f);
+  if (f.engineStarting > 0) return { text: 'STARTING ENGINE…', color: PALETTE.teal };
+  if (!f.engineOn) return { text: 'ENGINE OUT · PRESS X TO START', color: PALETTE.warning };
+  if (f.parkingBrake) return { text: 'PARKING BRAKE · PRESS B TO RELEASE', color: PALETTE.amber };
+  if (mission?.airborne && mission.gateIndex >= mission.gates.length && mission.def.landing && kt > 4) {
+    return { text: 'BRAKE · SPACE · OR B FOR PARKING BRAKE', color: PALETTE.teal };
+  }
   if (f.throttle < 0.75) return { text: `HOLD SHIFT FOR POWER · ${Math.round(kt)} KT`, color: PALETTE.amber };
   if (kt < 58) return { text: `TAKEOFF · PULL S / ↓ TO ROTATE · ${Math.round(kt)} KT`, color: PALETTE.cream };
   return { text: 'ROTATE · PULL S / ↓', color: PALETTE.amber };
@@ -291,6 +309,7 @@ function warnings() {
   else if (!f.onGround && f.speed < AIRCRAFT.stallSpeed + 6) out.push({ text: 'LOW SPEED', color: PALETTE.amber });
   const ground = sampleHeight(f.position.x, f.position.z);
   if (!f.onGround && f.position.y - ground < 45 && f.vertical < -6) out.push({ text: 'TERRAIN', color: PALETTE.warning });
+  if (!f.engineOn && !f.onGround) out.push({ text: 'ENGINE OUT · GLIDE 75 KT', color: PALETTE.amber });
   if (f.fuel < 18) out.push({ text: 'FUEL LOW', color: PALETTE.amber });
   if (mission && mission.gateIndex >= activeGates.length && mission.def.landing && !f.gearDown && f.position.y < 260) {
     out.push({ text: 'GEAR UP', color: PALETTE.amber });
@@ -314,9 +333,12 @@ function updateWorld(dt) {
     activeBeacon.userData.column.material.opacity = 0.28 + Math.sin(time * 4) * 0.1;
     activeBeacon.userData.flare.scale.setScalar(18 + Math.sin(time * 3.1) * 3);
   }
-  plane.userData.propeller.rotation.z += dt * (18 + flight.state.throttle * 46);
+  const propRate = flight.state.engineOn
+    ? 18 + flight.state.throttle * 46
+    : flight.state.engineStarting > 0 ? 9 : Math.max(0, flight.state.speed * 0.55);
+  plane.userData.propeller.rotation.z += dt * propRate;
   plane.userData.propDisc.rotation.z += dt * 2.5;
-  plane.userData.propDisc.material.opacity = 0.28 + flight.state.throttle * 0.62;
+  plane.userData.propDisc.material.opacity = flight.state.engineOn ? 0.28 + flight.state.throttle * 0.62 : 0.08;
   const flapTarget = flight.state.flaps * 0.62;
   for (const flap of plane.userData.flaps) flap.rotation.x = damp(flap.rotation.x, flapTarget, 6, dt);
 }
@@ -350,6 +372,10 @@ function renderFrame(dt) {
         warnings: warnings(),
         radio: mission?.radio,
         wind: mission?.wind,
+        engine: flight.state.engineOn ? (flight.state.engineStarting > 0 ? 'START' : 'ON') : 'OUT',
+        touchdown: flight.state.onGround && flight.state.touchdownAt !== null && flight.state.time - flight.state.touchdownAt < 4
+          ? `TOUCHDOWN · ${flight.state.landingGrade} · ${Math.round(flight.state.touchdownRate * 196.85)} FPM`
+          : null,
         groundPrompt: groundPrompt(),
         keys: elapsed < 10 || showHelp ? input.activeKeys() : null,
       });
@@ -422,7 +448,7 @@ function drawTitle(g, W, H, s) {
   g.letterSpacing = '0px';
   g.fillStyle = 'rgba(255,241,210,0.6)';
   g.font = `400 ${14 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('A coastal flight in seven sorties.', x + 3 * s, H * 0.32 + 62 * s);
+  g.fillText('A coastal flight in eight sorties.', x + 3 * s, H * 0.32 + 62 * s);
 
   g.strokeStyle = 'rgba(255,180,92,0.6)';
   g.lineWidth = 1;
@@ -432,7 +458,7 @@ function drawTitle(g, W, H, s) {
   g.stroke();
 
   missions.forEach((m, i) => {
-    const y = H * 0.5 + i * 40 * s;
+    const y = H * 0.49 + i * 37 * s;
     const active = i === selected;
     if (active) {
       g.fillStyle = 'rgba(255,180,92,0.14)';
@@ -486,13 +512,14 @@ function drawBrief(g, W, H, s) {
   const clock = mission.timeLimit !== null ? formatTime(mission.timeLimit) : 'NO CLOCK';
   const finish = mission.def.landing ? 'LANDING REQUIRED' : 'TIMED RUN';
   const wx = mission.weather === 'storm' ? 'STORM' : 'CLEAR';
-  g.fillText(`${rings}   ${clock}   ${finish}   ${wx}`, x + 38 * s, y + h - 86 * s);
+  g.fillText(`${rings}   ${clock}   ${finish}   ${wx}`, x + 38 * s, y + h - 96 * s);
   g.fillStyle = PALETTE.amber;
   g.font = `700 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('ENTER  FLY', x + 38 * s, y + h - 48 * s);
+  g.fillText('ENTER  FLY', x + 38 * s, y + h - 64 * s);
   g.fillStyle = 'rgba(255,241,210,0.4)';
   g.font = `500 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · IJKL ALSO FLY · SHIFT THROTTLE · C CAMERA · V ASSIST · F FLAPS', x + 160 * s, y + h - 47 * s);
+  g.font = `500 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · SHIFT THROTTLE · X ENGINE · B PARK · G GEAR · F FLAPS · C CAMERA · V ASSIST', x + 38 * s, y + h - 38 * s);
 }
 
 function drawPause(g, W, H, s) {
