@@ -635,7 +635,7 @@ function drawTitle(g, W, H, s) {
   g.fillText(`WEATHER  ${WEATHER_LABELS[weatherChoice]}`, x, H - 70 * s);
   g.fillStyle = 'rgba(255,241,210,0.45)';
   g.font = `500 ${10.5 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('↑ ↓ SELECT   ENTER FLY   [ ] WEATHER   MOUSE FLY · WHEEL THROTTLE', x, H - 46 * s);
+  g.fillText('↑ ↓ SELECT   ENTER FLY   T WEATHER   MOUSE FLY · WHEEL THROTTLE', x, H - 46 * s);
   g.textAlign = 'right';
   g.fillStyle = 'rgba(255,241,210,0.28)';
   g.fillText('A MAKE.FUN FLIGHT GAME', W - 34 * s, H - 46 * s);
@@ -676,7 +676,7 @@ function drawBrief(g, W, H, s) {
   g.fillStyle = 'rgba(255,241,210,0.4)';
   g.font = `500 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
   g.font = `500 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · SHIFT THROTTLE · X ENGINE · B PARK · G GEAR · F FLAPS · C CAMERA · V ASSIST · [ ] WEATHER', x + 38 * s, y + h - 38 * s);
+  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · SHIFT THROTTLE · X ENGINE · B PARK · G GEAR · F FLAPS · C CAMERA · V ASSIST · T WEATHER', x + 38 * s, y + h - 38 * s);
 }
 
 function drawPause(g, W, H, s) {

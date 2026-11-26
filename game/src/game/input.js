@@ -21,7 +21,7 @@ export const ACTIONS = {
 const KEY_TO_CODE = {
   w: 'KeyW', a: 'KeyA', s: 'KeyS', d: 'KeyD', q: 'KeyQ', e: 'KeyE',
   i: 'KeyI', j: 'KeyJ', k: 'KeyK', l: 'KeyL',
-  c: 'KeyC', g: 'KeyG', f: 'KeyF', m: 'KeyM', p: 'KeyP', r: 'KeyR', h: 'KeyH', v: 'KeyV', x: 'KeyX', b: 'KeyB',
+  c: 'KeyC', g: 'KeyG', f: 'KeyF', m: 'KeyM', p: 'KeyP', r: 'KeyR', h: 'KeyH', v: 'KeyV', x: 'KeyX', b: 'KeyB', t: 'KeyT',
   arrowup: 'ArrowUp', arrowdown: 'ArrowDown', arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
   ' ': 'Space', enter: 'Enter', escape: 'Escape', '[': 'BracketLeft', ']': 'BracketRight',
 };
@@ -60,6 +60,7 @@ export function createInput(canvas) {
     KeyX: ACTIONS.ENGINE,
     KeyB: ACTIONS.PARK,
     BracketRight: ACTIONS.WEATHER_NEXT,
+    KeyT: ACTIONS.WEATHER_NEXT,
     BracketLeft: ACTIONS.WEATHER_PREV,
   };
 

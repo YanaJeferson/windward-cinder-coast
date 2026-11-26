@@ -42,7 +42,7 @@ repository. The game runs in desktop Chrome (or any current desktop browser) at 
 | `P` | pause |
 | `R` | restart the sortie |
 | `V` | assist / pro flight envelope |
-| `[` / `]` | cycle weather (auto, sunny, windy, rain, storm, fog, snow, night) |
+| `T` or `[` / `]` | cycle weather (auto, sunny, windy, rain, storm, fog, snow, night) |
 | `M` | mute |
 
 ## Seven ways to fly
