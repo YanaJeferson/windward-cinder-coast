@@ -8,6 +8,7 @@ import { createSky } from './world/sky.js';
 import { createAirport } from './world/airport.js';
 import { createVegetation } from './world/vegetation.js';
 import { createGrass } from './world/grass.js';
+import { createFields } from './world/fields.js';
 import { createWeather, windVector } from './world/weather.js';
 import { createGates, createBeacon, updateGates } from './world/gates.js';
 import { createAircraft } from './aircraft/plane.js';
@@ -37,7 +38,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.28;
+renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -73,6 +74,8 @@ for (const child of sky.children) {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.userData.clearBackground = tex;
     scene.background = tex;
+    scene.environment = tex;
+    scene.environmentIntensity = 0.55;
     scene.backgroundIntensity = weather.kind === 'clear' ? 1.0 : 0.28;
     scene.fog.color.set('#c9d5da');
   };
@@ -102,6 +105,7 @@ scene.add(createVegetation());
 const grass = createGrass();
 grass.a.visible = false;
 grass.b.visible = false;
+scene.add(createFields());
 
 const weather = createWeather({ scene, sky, sea });
 const plane = createAircraft();

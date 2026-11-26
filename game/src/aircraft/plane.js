@@ -2,14 +2,14 @@
 // over-sized tundra tyres. All geometry is generated here; the livery is a painted canvas.
 import * as THREE from '../../vendor/three.module.min.js';
 
-const CREAM = new THREE.MeshStandardMaterial({ color: '#f2e4c6', roughness: 0.58, metalness: 0.06 });
+const CREAM = new THREE.MeshStandardMaterial({ color: '#f2e4c6', roughness: 0.58, metalness: 0.06, envMapIntensity: 0.5 });
 const CORAL = new THREE.MeshStandardMaterial({ color: '#e8613f', roughness: 0.55, metalness: 0.03 });
 const TEAL = new THREE.MeshStandardMaterial({ color: '#2f6d72', roughness: 0.5, metalness: 0.12 });
 const DARK = new THREE.MeshStandardMaterial({ color: '#23272b', roughness: 0.72, metalness: 0.18 });
-const METAL = new THREE.MeshStandardMaterial({ color: '#9aa0a4', roughness: 0.32, metalness: 0.7 });
-const GLASS = new THREE.MeshStandardMaterial({
-  color: '#16333d', roughness: 0.08, metalness: 0.4, transparent: true, opacity: 0.82,
-  side: THREE.DoubleSide,
+const METAL = new THREE.MeshStandardMaterial({ color: '#9aa0a4', roughness: 0.3, metalness: 0.75, envMapIntensity: 1.1 });
+const GLASS = new THREE.MeshPhysicalMaterial({
+  color: '#1c3d47', roughness: 0.04, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.04,
+  transparent: true, opacity: 0.86, side: THREE.DoubleSide, envMapIntensity: 1.4,
 });
 
 function liveryTexture() {
@@ -197,7 +197,7 @@ export function createAircraft() {
     { z: 4.15, w: 0.12, h: 0.22, y: 0.28 },
   ], 12);
   const bodyMat = new THREE.MeshStandardMaterial({
-    map: liveryTexture(), bumpMap: liveryBump(), bumpScale: 0.012, roughness: 0.52, metalness: 0.08,
+    map: liveryTexture(), bumpMap: liveryBump(), bumpScale: 0.012, roughness: 0.52, metalness: 0.08, envMapIntensity: 0.25,
   });
   const body = new THREE.Mesh(fuselage, bodyMat);
   body.castShadow = true;
@@ -218,7 +218,7 @@ export function createAircraft() {
   }
 
   // High wing with dihedral, one panel a side.
-  const wingMat = new THREE.MeshStandardMaterial({ map: wingTexture(), roughness: 0.56, metalness: 0.05 });
+  const wingMat = new THREE.MeshStandardMaterial({ map: wingTexture(), roughness: 0.56, metalness: 0.05, envMapIntensity: 0.25 });
   const wing = new THREE.Group();
   wing.position.set(0, 0.94, -0.55);
   for (const side of [-1, 1]) {
@@ -323,6 +323,83 @@ export function createAircraft() {
   pitot.rotation.x = Math.PI / 2;
   pitot.position.set(4.0, 0.35, -0.9);
   group.add(pitot);
+
+  // Glowing navigation lights, exhausts, caps and handles: the details that read up close.
+  const glowC = document.createElement('canvas');
+  glowC.width = 64; glowC.height = 64;
+  const glowG = glowC.getContext('2d');
+  const glowR = glowG.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glowR.addColorStop(0, 'rgba(255,255,255,1)');
+  glowR.addColorStop(0.25, 'rgba(255,255,255,0.5)');
+  glowR.addColorStop(1, 'rgba(255,255,255,0)');
+  glowG.fillStyle = glowR; glowG.fillRect(0, 0, 64, 64);
+  const glowTex = new THREE.CanvasTexture(glowC);
+  for (const side of [-1, 1]) {
+    const lamp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex, color: side < 0 ? '#ff4a3d' : '#54ff9e', transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.35,
+    }));
+    lamp.position.set(side * 5.55, 0.38, -0.12);
+    lamp.scale.setScalar(0.45);
+    group.add(lamp);
+  }
+  const tailGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTex, color: '#fff0d0', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.7,
+  }));
+  tailGlow.position.set(0, 0.6, 4.4);
+  tailGlow.scale.setScalar(0.8);
+  group.add(tailGlow);
+
+  const exhaustMat = new THREE.MeshStandardMaterial({ color: '#39342f', roughness: 0.5, metalness: 0.8, envMapIntensity: 1.1 });
+  for (const side of [-1, 1]) {
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 1.0, 7), exhaustMat);
+    pipe.rotation.x = Math.PI / 2;
+    pipe.position.set(side * 0.58, -0.18, -2.35);
+    group.add(pipe);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.035, 10), METAL);
+    cap.position.set(side * 2.35, 1.04, -0.08);
+    group.add(cap);
+    const tie = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.018, 5, 8), METAL);
+    tie.rotation.x = Math.PI / 2;
+    tie.position.set(side * 2.6, 0.79, 0.42);
+    group.add(tie);
+    const fairing = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.34), CREAM);
+    fairing.position.set(side * 2.4, 1.02, 0.12);
+    group.add(fairing);
+  }
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.035, 0.035), METAL);
+  handle.position.set(0.99, 0.2, -0.42);
+  group.add(handle);
+  const step = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.03, 0.12), METAL);
+  step.position.set(0.86, -0.62, 0.1);
+  group.add(step);
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color: '#ff5a3a' }));
+  beacon.position.set(0, 1.02, 1.0);
+  group.add(beacon);
+
+  // Registration on the fin, one each side.
+  {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 96;
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, 256, 96);
+    g.fillStyle = 'rgba(240,232,212,0.96)';
+    g.font = '700 38px "Helvetica Neue", Arial, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText('WW-07', 128, 48);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    for (const side of [-1, 1]) {
+      const decal = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.82, 0.3),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+      );
+      decal.position.set(side * 0.065, 0.9, 3.62);
+      decal.rotation.y = side * Math.PI / 2;
+      group.add(decal);
+    }
+  }
 
   group.userData = { propeller, propDisc, flaps, gear, wing, body, canopy, canopyFrame };
   return group;

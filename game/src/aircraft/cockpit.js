@@ -80,6 +80,58 @@ export function createCockpit() {
   backlight.position.set(0, 0, 0.031);
   panelGroup.add(backlight);
 
+  // Placard strip along the top of the panel.
+  {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 32;
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, 512, 32);
+    g.fillStyle = 'rgba(225,212,184,0.6)';
+    g.font = '600 17px "Helvetica Neue", Arial, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText('MASTER   ·   FUEL PUMP   ·   AVIONICS   ·   TRIM', 256, 17);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const placard = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.88, 0.045),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+    );
+    placard.position.set(0, 0.215, 0.042);
+    panelGroup.add(placard);
+  }
+
+  // Radio stack, with a warm green display.
+  for (let i = 0; i < 2; i += 1) {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 64;
+    const g = c.getContext('2d');
+    g.fillStyle = '#101a15';
+    g.fillRect(0, 0, 128, 64);
+    g.strokeStyle = '#26352b';
+    g.strokeRect(2, 2, 124, 60);
+    g.fillStyle = '#7fe0a4';
+    g.font = '600 19px "SF Mono", Consolas, monospace';
+    g.textAlign = 'center';
+    g.fillText(i === 0 ? 'COM1 121.90' : 'NAV1 108.30', 64, 28);
+    g.fillStyle = 'rgba(127,224,164,0.55)';
+    g.font = '500 12px "SF Mono", Consolas, monospace';
+    g.fillText(i === 0 ? 'STBY 121.50' : 'STBY 109.00', 64, 48);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(0.19, 0.095, 0.045),
+      new THREE.MeshStandardMaterial({ color: '#1a1f21', roughness: 0.7, metalness: 0.3 }),
+    );
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.16, 0.075),
+      new THREE.MeshBasicMaterial({ map: tex }),
+    );
+    box.position.set(0.58 + i * 0.0, 0.86 - i * 0.1, -1.3);
+    screen.position.set(0.58, 0.86 - i * 0.1, -1.275);
+    group.add(box, screen);
+  }
+
   const gauges = [];
   for (const item of GAUGE_LAYOUT) {
     const face = makeGaugeFace(item.kind);

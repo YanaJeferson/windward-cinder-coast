@@ -20,7 +20,7 @@ node serve.ts
 No build step and no network requests: `game/index.html` and every module it loads live in this
 repository. The game runs in desktop Chrome (or any current desktop browser) at 1280×720.
 
-**Assets.** The sky panorama, ground, rock and asphalt textures are CC0 photographic sources credited in [CREDITS.md](./CREDITS.md); the game code, aircraft, terrain shape and HUD are original.
+**Assets.** The sky panorama, ground, rock and asphalt textures are CC0 photographic sources credited in [CREDITS.md](./CREDITS.md); the game code, aircraft, terrain shape and HUD are original. The strip is surrounded by crop fields, hedgerows, fences, a dirt track and mixed woodland.
 
 **Controls**
 
