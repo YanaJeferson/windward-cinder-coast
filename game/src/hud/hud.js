@@ -400,6 +400,26 @@ export function createHud(canvas) {
       wy += 21 * s;
     }
 
+    // First seconds of a sortie: show which keys the game is actually seeing.
+    if (state.keys) {
+      const held = new Set(state.keys);
+      const row = [['W', 'KeyW'], ['A', 'KeyA'], ['S', 'KeyS'], ['D', 'KeyD'], ['↑', 'ArrowUp'], ['←', 'ArrowLeft'], ['↓', 'ArrowDown'], ['→', 'ArrowRight']];
+      const cell = 24 * s;
+      const width = row.length * cell + 12 * s;
+      const x0 = cx - width / 2;
+      const y0 = H - 34 * s;
+      g.fillStyle = 'rgba(10,16,18,0.5)';
+      roundRect(g, x0, y0, width, 24 * s, 3);
+      g.fill();
+      row.forEach(([label, code], i) => {
+        const on = held.has(code);
+        g.fillStyle = on ? AMBER : 'rgba(255,241,210,0.32)';
+        g.font = `700 ${11 * s}px "SF Mono", Consolas, monospace`;
+        g.textAlign = 'center';
+        g.fillText(label, x0 + 6 * s + i * cell + cell / 2, y0 + 16 * s);
+      });
+    }
+
     // Radio line.
     if (state.radio) {
       const { speaker, text, age } = state.radio;

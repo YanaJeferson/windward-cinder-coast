@@ -80,6 +80,7 @@ const rig = createCameraRig(camera);
 const hud = createHud(hudCanvas);
 const audio = createAudio();
 const input = createInput(sceneCanvas);
+sceneCanvas.focus();
 
 let screen = SCREENS.TITLE;
 let selected = 2;
@@ -340,6 +341,7 @@ function renderFrame(dt) {
         warnings: warnings(),
         radio: mission?.radio,
         wind: mission?.wind,
+        keys: elapsed < 10 || showHelp ? input.activeKeys() : null,
       });
     } else {
       hud.draw({
@@ -480,7 +482,7 @@ function drawBrief(g, W, H, s) {
   g.fillText('ENTER  FLY', x + 38 * s, y + h - 48 * s);
   g.fillStyle = 'rgba(255,241,210,0.4)';
   g.font = `500 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('W/S PITCH   A/D ROLL   SHIFT/CTRL THROTTLE   C CAMERA   G GEAR   F FLAPS   P PAUSE', x + 160 * s, y + h - 47 * s);
+  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · IJKL ALSO FLY · SHIFT THROTTLE · C CAMERA · V ASSIST · F FLAPS', x + 160 * s, y + h - 47 * s);
 }
 
 function drawPause(g, W, H, s) {

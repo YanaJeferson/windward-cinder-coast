@@ -24,8 +24,9 @@ repository. The game runs in desktop Chrome (or any current desktop browser) at 
 
 | Input | Action |
 | --- | --- |
-| `W` / `S` or `↑` / `↓` | pitch (push / pull) |
-| `A` / `D` or `←` / `→` | roll |
+| `W` / `↑` or `S` / `↓` | pitch: W/↑ pushes the nose down, S/↓ pulls it up |
+| `A` / `←` or `D` / `→` | roll |
+| `I` `J` `K` `L` | alternate pitch/roll keys (I = nose down, K = nose up) |
 | `Q` / `E` | rudder |
 | `Shift` / `Ctrl` or mouse wheel | throttle |
 | Mouse (click to capture) | fly the aircraft |

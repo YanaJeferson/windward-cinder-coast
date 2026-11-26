@@ -67,8 +67,8 @@ export function createFlight(initial = {}) {
       // loses authority, which keeps the arcade envelope out of a vertical hover.
       const pitchNow = Math.asin(clamp(a.fwd.y, -1, 1));
       let pitchTarget = controls.pitch * AIRCRAFT.pitchRate * (0.6 + speedFactor * 0.6) * authority;
-      if (pitchNow > 1.15 && pitchTarget > 0) pitchTarget *= 0.18;
-      if (pitchNow < -1.15 && pitchTarget < 0) pitchTarget *= 0.18;
+      if (pitchNow > 1.05 && pitchTarget > 0) pitchTarget *= 0.12;
+      if (pitchNow < -1.05 && pitchTarget < 0) pitchTarget *= 0.12;
       const rollTarget = controls.roll * AIRCRAFT.rollRate * (0.55 + speedFactor * 0.55) * authority;
       const yawTarget = controls.yaw * AIRCRAFT.yawRate * speedFactor * authority;
       rate.pitch = damp(rate.pitch, pitchTarget, 7, dt);
@@ -91,7 +91,7 @@ export function createFlight(initial = {}) {
       // Hands-off wing leveller, gentle enough to leave a bank alone.
       if (state.assist && Math.abs(controls.roll) < 0.04 && Math.abs(controls.pitch) < 0.04) {
         const bank = Math.atan2(-a.right.y, a.up.y);
-        tmpQ.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -bank * 0.22 * dt);
+        tmpQ.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -bank * 0.55 * dt);
         state.quaternion.multiply(tmpQ);
       }
 

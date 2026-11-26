@@ -1,5 +1,6 @@
-// Keyboard and mouse. The stick is the keyboard, the throttle is the wheel, and a click captures
-// the pointer so the mouse can fly the aircraft as well. One-shot actions are drained each frame.
+// Keyboard and mouse. WASD, IJKL and the arrow keys all fly the aircraft, so the layout of the
+// keyboard does not matter; the wheel is the throttle and a click captures the pointer for mouse
+// flight. One-shot actions are drained each frame.
 export const ACTIONS = {
   CONFIRM: 1,
   PAUSE: 2,
@@ -12,16 +13,33 @@ export const ACTIONS = {
   FLIGHTMODE: 256,
 };
 
+// Letters by their printed key, for keyboards whose physical layout is not QWERTY.
+const KEY_TO_CODE = {
+  w: 'KeyW', a: 'KeyA', s: 'KeyS', d: 'KeyD', q: 'KeyQ', e: 'KeyE',
+  i: 'KeyI', j: 'KeyJ', k: 'KeyK', l: 'KeyL',
+  c: 'KeyC', g: 'KeyG', f: 'KeyF', m: 'KeyM', p: 'KeyP', r: 'KeyR', h: 'KeyH', v: 'KeyV',
+  arrowup: 'ArrowUp', arrowdown: 'ArrowDown', arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
+  ' ': 'Space', enter: 'Enter', escape: 'Escape',
+};
+
+function codesFor(event) {
+  const codes = new Set();
+  if (event.code) codes.add(event.code);
+  const key = event.key ? event.key.toLowerCase() : '';
+  if (KEY_TO_CODE[key]) codes.add(KEY_TO_CODE[key]);
+  return codes;
+}
+
 export function createInput(canvas) {
   const keys = new Set();
   const pressed = new Set();
+  const seen = new Set();
   let actions = 0;
   let wheel = 0;
   let mouseX = 0;
   let mouseY = 0;
   let mouseSteer = false;
   let pointerLocked = false;
-  let lastMouse = { x: 0, y: 0 };
 
   const codeAction = {
     Enter: ACTIONS.CONFIRM,
@@ -37,25 +55,40 @@ export function createInput(canvas) {
     KeyV: ACTIONS.FLIGHTMODE,
   };
 
-  window.addEventListener('keydown', (e) => {
-    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
-    if (!keys.has(e.code)) {
-      pressed.add(e.code);
-      if (codeAction[e.code]) actions |= codeAction[e.code];
-      if (e.code === 'Space') actions |= ACTIONS.CONFIRM;
+  // Capture on window so a focused element inside the page cannot swallow a flight key.
+  window.addEventListener('keydown', (event) => {
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) event.preventDefault();
+    for (const code of codesFor(event)) {
+      if (!keys.has(code) && !seen.has(code)) {
+        seen.add(code);
+        pressed.add(code);
+        if (codeAction[code]) actions |= codeAction[code];
+        if (code === 'Space') actions |= ACTIONS.CONFIRM;
+      }
+      keys.add(code);
     }
-    keys.add(e.code);
-  });
-  window.addEventListener('keyup', (e) => keys.delete(e.code));
-  window.addEventListener('blur', () => keys.clear());
+  }, { capture: true });
 
-  canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    wheel += Math.sign(e.deltaY) * 0.06;
+  window.addEventListener('keyup', (event) => {
+    for (const code of codesFor(event)) {
+      keys.delete(code);
+      seen.delete(code);
+    }
+  }, { capture: true });
+
+  window.addEventListener('blur', () => {
+    keys.clear();
+    seen.clear();
+  });
+
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    wheel += Math.sign(event.deltaY) * 0.06;
   }, { passive: false });
 
-  canvas.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
+  canvas.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) return;
+    canvas.focus();
     actions |= ACTIONS.CONFIRM;
     if (!pointerLocked) canvas.requestPointerLock?.();
   });
@@ -65,21 +98,20 @@ export function createInput(canvas) {
     mouseSteer = pointerLocked;
   });
 
-  window.addEventListener('mousemove', (e) => {
+  window.addEventListener('mousemove', (event) => {
     if (!pointerLocked) return;
-    mouseX += e.movementX;
-    mouseY += e.movementY;
-    lastMouse = { x: e.movementX, y: e.movementY };
+    mouseX += event.movementX;
+    mouseY += event.movementY;
   });
 
   function axes() {
-    const k = (a, b) => (keys.has(a) || keys.has(b) ? 1 : 0);
-    let pitch = k('KeyS', 'ArrowDown') - k('KeyW', 'ArrowUp');
-    let roll = k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft');
-    let yaw = k('KeyE') - k('KeyQ');
+    const has = (...codes) => codes.some((code) => keys.has(code));
+    let pitch = (has('KeyS', 'ArrowDown', 'KeyK') ? 1 : 0) - (has('KeyW', 'ArrowUp', 'KeyI') ? 1 : 0);
+    let roll = (has('KeyD', 'ArrowRight', 'KeyL') ? 1 : 0) - (has('KeyA', 'ArrowLeft', 'KeyJ') ? 1 : 0);
+    let yaw = (has('KeyE') ? 1 : 0) - (has('KeyQ') ? 1 : 0);
     if (mouseSteer) {
-      pitch += Math.max(-1, Math.min(1, mouseY / 160));
-      roll += Math.max(-1, Math.min(1, mouseX / 160));
+      pitch += Math.max(-1, Math.min(1, mouseY / 220));
+      roll += Math.max(-1, Math.min(1, mouseX / 220));
       mouseX *= 0.55;
       mouseY *= 0.55;
     }
@@ -107,13 +139,24 @@ export function createInput(canvas) {
   }
 
   function wasPressed(code) {
-    const has = pressed.has(code);
-    return has;
+    return pressed.has(code);
   }
 
   function endFrame() {
     pressed.clear();
   }
 
-  return { axes, throttleDelta, takeActions, wasPressed, endFrame, start: () => {}, get pointerLocked() { return pointerLocked; } };
+  function activeKeys() {
+    return [...keys];
+  }
+
+  return {
+    axes,
+    throttleDelta,
+    takeActions,
+    wasPressed,
+    endFrame,
+    activeKeys,
+    get pointerLocked() { return pointerLocked; },
+  };
 }

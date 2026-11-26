@@ -26,9 +26,9 @@ export const AIRCRAFT = {
   minSpeed: 18,
   maxThrust: 8.5,
   drag: 0.0026,
-  pitchRate: 1.05,      // rad/s at cruise
-  rollRate: 1.85,
-  yawRate: 0.55,
+  pitchRate: 0.72,      // rad/s at cruise
+  rollRate: 0.95,
+  yawRate: 0.5,
   fuelCapacity: 100,
   fuelBurn: 0.42,       // litres-ish per second at full throttle
   maxDamage: 100,
