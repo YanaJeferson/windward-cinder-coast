@@ -19,9 +19,9 @@ const PRESETS = {
     wind: { from: 250, speed: 3, gust: 1.2 },
   },
   sunset: {
-    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 6, envKind: 'sunset',
-    fog: '#d59a76', fogNear: 1600, fogFar: 16000,
-    sunColor: '#ffb178', sunIntensity: 1.7, hemiSky: '#ffc9a0', hemiGround: '#5a3a30', hemiIntensity: 0.75,
+    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 8.5, envKind: 'sunset',
+    fog: '#d89d7c', fogNear: 1700, fogFar: 15500,
+    sunColor: '#ffb178', sunIntensity: 2.6, hemiSky: '#ffc9a0', hemiGround: '#5c3d33', hemiIntensity: 0.95,
     seaDeep: '#1d5162', seaShallow: '#69b4ad', seaSky: '#ffc08a', seaFog: '#d59a76', seaFogNear: 700, seaFogFar: 13000,
     rain: false, snow: false, snowGround: 0, lightning: false, env: 0.05, landingLight: false,
     wind: { from: 250, speed: 4, gust: 1.5 },
@@ -133,6 +133,17 @@ function skyBackdrop(kind) {
     g.fillStyle = '#fff2c9';
     g.beginPath(); g.arc(sx, sy, 30, 0, Math.PI * 2); g.fill();
     const random = createRandom(7719);
+    for (let i = 0; i < 26; i += 1) {
+      const x = random() * 2048;
+      const y = 420 + random() * 240;
+      const w = 240 + random() * 620;
+      const h = 12 + random() * 36;
+      const band = g.createRadialGradient(x, y, 2, x, y, w * 0.5);
+      band.addColorStop(0, `rgba(255,190,150,${0.1 + random() * 0.13})`);
+      band.addColorStop(1, 'rgba(255,150,110,0)');
+      g.fillStyle = band;
+      g.save(); g.translate(x, y); g.scale(1, h / (w * 0.5)); g.beginPath(); g.arc(0, 0, w * 0.5, 0, Math.PI * 2); g.fill(); g.restore();
+    }
     for (let i = 0; i < 55; i += 1) {
       const x = random() * 2048;
       const y = 90 + random() * 470;
@@ -238,10 +249,58 @@ export function createWeather({ scene, sky, sea }) {
     map: new THREE.CanvasTexture(sunCanvas), color: '#ffe9c2', transparent: true,
     blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false, opacity: 0.45,
   }));
-  sunSprite.scale.setScalar(1150);
+  sunSprite.scale.setScalar(1900);
   sunSprite.visible = false;
   sunSprite.renderOrder = 3;
   scene.add(sunSprite);
+
+  // Sunset cloud bank: soft billboards on a ring so the sky has depth instead of a clean gradient.
+  function cloudTexture(seed) {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const g = c.getContext('2d');
+    const random = createRandom(seed);
+    // Underside first: cool shadow, then warm lit tops, so the bank reads as volume.
+    for (let i = 0; i < 22; i += 1) {
+      const x = 24 + random() * 208;
+      const y = 62 + random() * 34;
+      const r = 18 + random() * 40;
+      const grad = g.createRadialGradient(x, y, 1, x, y, r);
+      grad.addColorStop(0, `rgba(126,92,104,${0.30 + random() * 0.22})`);
+      grad.addColorStop(1, 'rgba(126,92,104,0)');
+      g.fillStyle = grad;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    for (let i = 0; i < 26; i += 1) {
+      const x = 22 + random() * 212;
+      const y = 38 + random() * 38;
+      const r = 16 + random() * 38;
+      const grad = g.createRadialGradient(x, y, 1, x, y, r);
+      grad.addColorStop(0, `rgba(255,228,206,${0.55 + random() * 0.3})`);
+      grad.addColorStop(0.6, `rgba(255,205,178,${0.3 + random() * 0.18})`);
+      grad.addColorStop(1, 'rgba(255,190,160,0)');
+      g.fillStyle = grad;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    return new THREE.CanvasTexture(c);
+  }
+  const cloudTextures = [cloudTexture(881), cloudTexture(1723), cloudTexture(3301)];
+  const cloudGroup = new THREE.Group();
+  cloudGroup.visible = false;
+  const randomCloud = createRandom(5511);
+  for (let i = 0; i < 22; i += 1) {
+    const a = (i / 22) * Math.PI * 2 + randomCloud() * 0.24;
+    const r = 6200 + randomCloud() * 3600;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: cloudTextures[i % 3], color: i % 4 === 0 ? '#ffcdb2' : '#f6bda4',
+      transparent: true, depthWrite: false, fog: false,
+      opacity: 0.62 + randomCloud() * 0.28,
+    }));
+    sprite.position.set(-2500 + Math.sin(a) * r, 560 + randomCloud() * 1500, 700 + Math.cos(a) * r);
+    sprite.scale.set(3600 + randomCloud() * 4200, 800 + randomCloud() * 900, 1);
+    sprite.renderOrder = 2;
+    cloudGroup.add(sprite);
+  }
+  scene.add(cloudGroup);
   const sun = sky.userData.sun;
   const hemi = sky.userData.hemi;
   const dome = sky.children[0];
@@ -260,6 +319,7 @@ export function createWeather({ scene, sky, sea }) {
     if (lakeMesh?.userData.uniforms) lakeMesh.userData.uniforms.uSun.value.copy(sky.userData.sunDir);
     sunSprite.position.copy(sky.userData.sunDir).multiplyScalar(22000);
     sunSprite.visible = p.bg === 'sunset';
+    cloudGroup.visible = p.bg === 'sunset' || p.bg === 'overcast';
     scene.fog.color.set(p.fog);
     scene.fog.near = p.fogNear;
     scene.fog.far = p.fogFar;

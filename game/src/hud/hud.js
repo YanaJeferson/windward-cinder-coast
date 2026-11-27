@@ -50,7 +50,7 @@ export function createHud(canvas) {
 
   function tape(g, x, y, h, value, step, pxPerUnit, side, label, unit, digits = 0) {
     const half = h / 2;
-    panel(g, side < 0 ? x - 62 * s : x - 10 * s, y - half - 24 * s, 72 * s, h + 48 * s, 6, 'rgba(10,16,18,0.38)');
+    panel(g, side < 0 ? x - 62 * s : x - 10 * s, y - half - 24 * s, 72 * s, h + 48 * s, 6, 'rgba(10,16,19,0.5)');
     g.save();
     g.beginPath();
     g.rect(x - 66 * s, y - half, 132 * s, h);
@@ -397,6 +397,27 @@ export function createHud(canvas) {
       const next = gateScreen ? gateScreen.distance : null;
       if (!state.compact) missionCard(g, W - 30 * s, H - 118 * s, mission, flight, next);
       if (gateScreen) gateBracket(g, gateScreen, `GATE ${mission.gateIndex + 1}`, `${(gateScreen.distance / 1000).toFixed(2)} KM`, gateScreen.offscreen);
+    }
+
+    // Speed streaks: a little of the Vertigo-style sense of motion at the edges of the glass.
+    if (state.speedFx) {
+      const intensity = state.speedFx;
+      g.save();
+      g.strokeStyle = 'rgba(255,246,224,0.5)';
+      g.lineWidth = 1.5;
+      for (let i = 0; i < 20; i += 1) {
+        const a = (i / 20) * Math.PI * 2 + 0.2;
+        const inner = 0.42 + (i % 3) * 0.08;
+        const outer = 1.05;
+        const cx = W / 2;
+        const cy = H / 2;
+        g.globalAlpha = intensity * (0.28 + (i % 4) * 0.09);
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * W * inner * 0.5, cy + Math.sin(a) * H * inner * 0.5);
+        g.lineTo(cx + Math.cos(a) * W * outer * 0.5, cy + Math.sin(a) * H * outer * 0.5);
+        g.stroke();
+      }
+      g.restore();
     }
 
     // Warnings, stacked under the reticle.

@@ -6,7 +6,7 @@ import { LAKE } from './terrain.js';
 import { sunDirection } from './sky.js';
 
 export function createLake() {
-  const geo = new THREE.PlaneGeometry(2300, 1950);
+  const geo = new THREE.PlaneGeometry(LAKE.rx * 2.04, LAKE.rz * 2.04);
   geo.rotateX(-Math.PI / 2);
   const uniforms = {
     uTime: { value: 0 },

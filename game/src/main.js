@@ -155,6 +155,37 @@ scene.add(shadowBlob);
 const cockpit = createCockpit();
 plane.add(cockpit.group);
 
+const trailHistories = [[], []];
+const trailLines = [0, 1].map(() => {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(42 * 3), 3));
+  const mat = new THREE.LineBasicMaterial({ color: '#f0f7ff', transparent: true, opacity: 0.0, depthWrite: false });
+  const line = new THREE.Line(geo, mat);
+  line.frustumCulled = false;
+  scene.add(line);
+  return line;
+});
+let trailClock = 0;
+function updateTrails(dt) {
+  const active = screen === SCREENS.FLY && !flight.state.crashed && flight.state.speed > 38 && !flight.state.onGround;
+  trailClock += dt;
+  for (let side = 0; side < 2; side += 1) {
+    const sgn = side === 0 ? -1 : 1;
+    const local = new THREE.Vector3(sgn * 5.55, 0.38, -0.1).applyQuaternion(plane.quaternion).add(plane.position);
+    const hist = trailHistories[side];
+    hist.unshift(local);
+    if (hist.length > 42) hist.pop();
+    const geo = trailLines[side].geometry;
+    const arr = geo.attributes.position.array;
+    for (let i = 0; i < 42; i += 1) {
+      const p = hist[Math.min(i, hist.length - 1)] || local;
+      arr[i * 3] = p.x; arr[i * 3 + 1] = p.y; arr[i * 3 + 2] = p.z;
+    }
+    geo.attributes.position.needsUpdate = true;
+    trailLines[side].material.opacity = active ? Math.min(0.28, (flight.state.speed - 34) / 120) : Math.max(0, trailLines[side].material.opacity - dt * 0.8);
+  }
+}
+
 const missions = createMissions();
 const missionGroups = missions.map((def) => {
   const { group, gates } = createGates(def.gates);
@@ -214,7 +245,7 @@ const stick = { roll: 0, pitch: 0, yaw: 0 };
 let time = 0;
 
 const titleFlight = {
-  position: new THREE.Vector3(-1750, 470, 1450),
+  position: new THREE.Vector3(-1810, 508, 1520),
   quaternion: new THREE.Quaternion(),
   speed: 60,
   throttle: 0.55,
@@ -228,10 +259,10 @@ const titleFlight = {
   overspeed: false,
   vertical: 0,
   bank: 0,
-  heading: 300,
+  heading: 304,
   gLoad: 1,
 };
-setHeading(titleFlight, 300);
+setHeading(titleFlight, 304);
 titleFlight.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -0.08));
 
 function announce(text) {
@@ -440,8 +471,8 @@ function updateTitle(dt) {
   plane.userData.propDisc.rotation.z += dt * 3;
   const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(titleFlight.quaternion);
   titleFlight.position.addScaledVector(fwd, dt * 20);
-  if (titleFlight.position.distanceTo(new THREE.Vector3(-2500, 470, 700)) > 1700) {
-    titleFlight.position.set(-1750, 470, 1450);
+  if (titleFlight.position.distanceTo(new THREE.Vector3(-2500, 508, 700)) > 1400) {
+    titleFlight.position.set(-1810, 508, 1520);
   }
   rig.update(titleFlight, dt, time);
   weather.update(dt, camera, titleFlight);
@@ -532,6 +563,7 @@ function updateWorld(dt) {
   }
   weather.update(dt, camera, flight.state);
   effects.update(dt);
+  updateTrails(dt);
   crashFlash = Math.max(0, crashFlash - dt * 1.4);
   updateGates(activeGates, mission ? mission.gateIndex : 0, time);
   if (activeBeacon && mission && mission.gateIndex >= 2) {
@@ -578,6 +610,7 @@ function renderFrame(dt) {
         radio: mission?.radio,
         wind: weather.wind,
         weatherLabel: weather.label,
+        speedFx: flight.state.onGround ? 0 : Math.max(0, Math.min(1, (flight.state.speed - 42) / 45)),
         flash: crashFlash,
         engine: flight.state.engineOn ? (flight.state.engineStarting > 0 ? 'START' : 'ON') : 'OUT',
         touchdown: flight.state.onGround && flight.state.touchdownAt !== null && flight.state.time - flight.state.touchdownAt < 4
@@ -1043,11 +1076,11 @@ const shot = params.get('shot');
 
 function stageShot(name) {
   const setups = {
-    cover: { mission: 2, position: [-20, 124, 1500], heading: 1, speed: 58, roll: -0.1, pitch: 0.015, camera: 'hero', gate: 0 },
+    cover: { mission: 2, position: [-1810, 505, 1520], heading: 304, speed: 60, roll: -0.1, pitch: 0.02, camera: 'hero', gate: 0 },
     cockpit: { mission: 2, position: [10, 190, 1700], heading: 0, speed: 57, roll: 0.0, pitch: 0.03, camera: 'cockpit', gate: 0 },
-    canyon: { mission: 3, position: [canyonPoint(-1000), 0, -1000], heading: 358, speed: 72, roll: -0.05, pitch: 0.01, camera: 'chase', gate: 4 },
-    landing: { mission: 2, position: [-8, 54, 610], heading: 0, speed: 46, roll: 0.0, pitch: -0.04, camera: 'hero', gate: 5 },
-    storm: { mission: 6, position: [0, 210, 2300], heading: 0, speed: 60, roll: -0.04, pitch: 0.02, camera: 'hero', gate: 0 },
+    canyon: { mission: 4, position: [canyonPoint(-1000), 0, -1000], heading: 358, speed: 72, roll: -0.05, pitch: 0.01, camera: 'chase', gate: 4 },
+    landing: { mission: 3, position: [-8, 54, 610], heading: 0, speed: 46, roll: 0.0, pitch: -0.04, camera: 'hero', gate: 5 },
+    storm: { mission: 7, position: [0, 210, 2300], heading: 0, speed: 60, roll: -0.04, pitch: 0.02, camera: 'hero', gate: 0 },
   };
   const setup = setups[name];
   if (!setup) return false;

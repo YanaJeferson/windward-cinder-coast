@@ -49,9 +49,37 @@ export function sampleHeight(x, z) {
   h -= crater * 175;
   h += Math.exp(-(((x + 2550) / 120) ** 2 + ((z - 720) / 110) ** 2) * 2.4) * 36;
 
-  // The caldera lake: a broad bowl inside the old volcano, with a water plane at 315 m.
-  const caldera = Math.exp(-(((x + 2500) / 1500) ** 2 + ((z - 700) / 1260) ** 2) * 1.7);
-  h = lerp(h, 302, smoothstep(0.18, 0.82, caldera) * 0.97);
+  // The caldera lake: carve an elliptical bowl that is guaranteed to sit below the water plane,
+  // then let the shore climb steeply back to the old cone.
+  const lx = (x - LAKE.x) / LAKE.rx;
+  const lz = (z - LAKE.z) / LAKE.rz;
+  const lakeDist = Math.sqrt(lx * lx + lz * lz);
+  const bowl = 1 - smoothstep(0.86, 1.16, lakeDist);
+  if (bowl > 0.001) h = lerp(h, 286, bowl * 0.985);
+  // The caldera rim: a ring of sharp volcanic peaks beyond the bowl, with enough irregularity
+  // that the skyline is a silhouette rather than a smooth dome.
+  const rdx = x - LAKE.x;
+  const rdz = z - LAKE.z;
+  const rr = Math.hypot(rdx, rdz);
+  const rim = smoothstep(1850, 2150, rr) * smoothstep(3500, 2950, rr);
+  if (rim > 0.001) {
+    const peaks = [
+      [-2.62, 1760, 520, 420], [-3.02, 1980, 640, 380], [-3.42, 1700, 700, 340],
+      [-2.22, 1900, 480, 420], [-1.78, 2050, 430, 400], [2.66, 1680, 470, 430],
+      [3.02, 1950, 560, 380], [2.24, 1880, 400, 400], [1.92, 1520, 340, 300],
+      [-1.28, 1950, 380, 380],
+    ];
+    for (let i = 0; i < peaks.length; i += 1) {
+      const [a, radius, height, spread] = peaks[i];
+      const px = LAKE.x + Math.cos(a) * radius;
+      const pz = LAKE.z + Math.sin(a) * radius;
+      const rough = 0.72 + 0.56 * fbm(px * 0.0021, pz * 0.0021, 3, 61 + i);
+      h += gauss(x, z, px, pz, spread, height * rough) * rim;
+    }
+    h += (ridge(x * 0.0028, z * 0.0028, 4, 77) - 0.5) * 150 * rim;
+    h += (fbm(x * 0.006, z * 0.006, 3, 41) - 0.5) * 34 * rim;
+    h += (fbm(x * 0.013, z * 0.013, 3, 19) - 0.5) * 10 * rim;
+  }
 
   // The Cinder canyon: a river-cut trench west of the strip.
   const canyonX = -1520 + Math.sin(z / 690) * 330 + Math.sin(z / 233) * 65;
@@ -256,12 +284,19 @@ export function createTerrain() {
       '#include <map_fragment>',
       `
         vec3 gcol = texture2D(uGrass, vMapUv * 0.62).rgb;
-        vec3 rcol = texture2D(uRock, vMapUv * 1.25).rgb;
+        float gLum = dot(gcol, vec3(0.299, 0.587, 0.114));
+        gcol = mix(vec3(gLum), gcol, 0.72) * vec3(1.06, 1.0, 0.86);
+        vec3 rcol = texture2D(uRock, vMapUv * 1.25).rgb * vec3(0.62, 0.66, 0.74);
         float macro = texture2D(uMacro, vMapUv * 0.055).r;
         float rockMix = max(smoothstep(0.22, 0.48, vSlope), smoothstep(170.0, 520.0, vHeight) * 0.85);
         vec3 terrainColor = mix(gcol, rcol, rockMix);
         vec3 macroTint = mix(vec3(0.72, 0.7, 0.56), vec3(1.28, 1.18, 0.96), smoothstep(0.32, 0.78, macro));
         terrainColor *= macroTint;
+        // Snow holds on the high, flat ground; the peaks round the caldera carry a cap even in summer.
+        float altSnow = smoothstep(660.0, 790.0, vHeight + (macro - 0.5) * 90.0) * smoothstep(0.6, 0.3, vSlope);
+        terrainColor = mix(terrainColor, vec3(0.93, 0.95, 0.99), altSnow * 0.95);
+        // Rock gets darker in the gullies, which reads as relief at distance.
+        terrainColor *= mix(0.78, 1.08, smoothstep(0.1, 0.8, macro));
         vec4 sampledDiffuseColor = vec4(terrainColor, 1.0);
         diffuseColor.rgb *= sampledDiffuseColor.rgb * 1.38 * vec3(1.08, 1.04, 0.94);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.94, 0.97), uSnow * 0.92);
