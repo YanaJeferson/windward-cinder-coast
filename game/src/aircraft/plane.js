@@ -180,6 +180,55 @@ function wingTexture() {
   return tex;
 }
 
+function wingGeometry(side, span = 5.4, rootChord = 1.75, tipChord = 0.95, rootThick = 0.22, tipThick = 0.1) {
+  const stations = 7;
+  const N = 8;
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  const topIdx = [];
+  const botIdx = [];
+  for (let s = 0; s <= stations; s += 1) {
+    const t = s / stations;
+    const x = side * t * span;
+    const chord = rootChord + (tipChord - rootChord) * t;
+    const thick = rootThick + (tipThick - rootThick) * t;
+    const yBase = 0.15 + t * 0.2;
+    const top = [];
+    const bot = [];
+    for (let i = 0; i <= N; i += 1) {
+      const z = -chord / 2 + (chord * i) / N;
+      const q = Math.sqrt(Math.max(0, 1 - Math.pow((2 * z) / chord, 2)));
+      top.push(positions.length / 3);
+      positions.push(x, yBase + (thick / 2) * q, z);
+      uvs.push(t, i / N);
+      bot.push(positions.length / 3);
+      positions.push(x, yBase - (thick / 2) * q, z);
+      uvs.push(t, i / N);
+    }
+    topIdx.push(top);
+    botIdx.push(bot);
+  }
+  for (let s = 0; s < stations; s += 1) {
+    for (let i = 0; i < N; i += 1) {
+      const a = topIdx[s][i]; const b = topIdx[s][i + 1];
+      const c = topIdx[s + 1][i]; const d = topIdx[s + 1][i + 1];
+      indices.push(a, c, b, b, c, d);
+      const a2 = botIdx[s][i]; const b2 = botIdx[s][i + 1];
+      const c2 = botIdx[s + 1][i]; const d2 = botIdx[s + 1][i + 1];
+      indices.push(a2, b2, c2, b2, d2, c2);
+      indices.push(topIdx[s][i], botIdx[s][i], topIdx[s + 1][i], botIdx[s][i], botIdx[s + 1][i], topIdx[s + 1][i]);
+    }
+    indices.push(topIdx[s][N], topIdx[s + 1][N], botIdx[s][N], topIdx[s + 1][N], botIdx[s + 1][N], botIdx[s][N]);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 export function createAircraft() {
   const group = new THREE.Group();
   group.name = 'petrel-aircraft';
@@ -204,12 +253,13 @@ export function createAircraft() {
   group.add(body);
 
   // Canopy and cabin windows.
-  const canopy = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.62, 1.65), GLASS);
-  canopy.position.set(0, 0.78, -1.55);
-  canopy.rotation.x = -0.06;
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.72, 18, 12), GLASS);
+  canopy.scale.set(0.92, 0.5, 1.3);
+  canopy.position.set(0, 0.82, -1.52);
   group.add(canopy);
-  const canopyFrame = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.06, 1.7), TEAL);
-  canopyFrame.position.set(0, 1.1, -1.55);
+  const canopyFrame = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.035, 6, 18, Math.PI), TEAL);
+  canopyFrame.rotation.x = Math.PI / 2;
+  canopyFrame.position.set(0, 1.06, -1.52);
   group.add(canopyFrame);
   for (const side of [-1, 1]) {
     const window = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.34, 0.72), GLASS);
@@ -223,19 +273,17 @@ export function createAircraft() {
   const wing = new THREE.Group();
   wing.position.set(0, 0.94, -0.55);
   for (const side of [-1, 1]) {
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(5.25, 0.16, 1.62), wingMat);
-    panel.position.set(side * 2.7, 0.18 * Math.abs(1), 0);
-    panel.rotation.z = side * 0.035;
+    const panel = new THREE.Mesh(wingGeometry(side), wingMat);
     panel.castShadow = true;
     wing.add(panel);
-    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.15, 1.5), CORAL);
-    tip.position.set(side * 5.18, 0.36, 0);
-    tip.rotation.z = side * 0.035;
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), CORAL);
+    tip.scale.set(0.55, 0.55, 1.35);
+    tip.position.set(side * 5.4, 0.36, 0);
     wing.add(tip);
     const aileronHinge = new THREE.Group();
-    aileronHinge.position.set(side * 4.1, 0.12, 0.86);
-    const aileron = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.07, 0.3), wingMat);
-    aileron.position.z = 0.15;
+    aileronHinge.position.set(side * 4.05, 0.13, 0.58);
+    const aileron = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.07, 0.34), wingMat);
+    aileron.position.z = 0.17;
     aileronHinge.add(aileron);
     wing.add(aileronHinge);
     ailerons.push({ hinge: aileronHinge, side });
@@ -243,10 +291,10 @@ export function createAircraft() {
       new THREE.SphereGeometry(0.085, 8, 6),
       new THREE.MeshBasicMaterial({ color: side < 0 ? '#ff4a3d' : '#54ff9e' }),
     );
-    nav.position.set(side * 5.55, 0.38, -0.05);
+    nav.position.set(side * 5.58, 0.38, -0.05);
     wing.add(nav);
-    wing.add(strut(new THREE.Vector3(side * 0.55, -0.65, 0.1), new THREE.Vector3(side * 2.4, 0.25, 0.15)));
-    wing.add(strut(new THREE.Vector3(side * 0.55, -0.65, -0.1), new THREE.Vector3(side * 2.4, 0.25, -1.05)));
+    wing.add(strut(new THREE.Vector3(side * 0.55, -0.65, 0.1), new THREE.Vector3(side * 2.3, 0.28, 0.18)));
+    wing.add(strut(new THREE.Vector3(side * 0.55, -0.65, -0.1), new THREE.Vector3(side * 2.3, 0.28, -0.55)));
   }
   group.add(wing);
 
@@ -254,7 +302,7 @@ export function createAircraft() {
   const flaps = [];
   for (const side of [-1, 1]) {
     const hinge = new THREE.Group();
-    hinge.position.set(side * 2.35, 0.11, 0.86);
+    hinge.position.set(side * 2.35, 0.11, 0.68);
     const flap = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.06, 0.62), CREAM);
     flap.position.z = 0.31;
     hinge.add(flap);
@@ -263,9 +311,19 @@ export function createAircraft() {
   }
 
   // Tail surfaces.
-  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.28, 1.15), CORAL);
-  fin.position.set(0, 0.95, 3.62);
-  fin.rotation.x = -0.1;
+  const finShape = new THREE.Shape();
+  finShape.moveTo(3.1, 0.26);
+  finShape.lineTo(4.25, 0.3);
+  finShape.lineTo(4.4, 0.8);
+  finShape.quadraticCurveTo(4.4, 1.15, 4.05, 1.42);
+  finShape.lineTo(3.85, 1.56);
+  finShape.lineTo(3.35, 1.38);
+  finShape.closePath();
+  const finGeo = new THREE.ExtrudeGeometry(finShape, { depth: 0.12, bevelEnabled: true, bevelSize: 0.035, bevelThickness: 0.03, bevelSegments: 2, steps: 1 });
+  finGeo.rotateY(-Math.PI / 2);
+  finGeo.translate(0.06, 0, 0);
+  const fin = new THREE.Mesh(finGeo, CORAL);
+  fin.castShadow = true;
   group.add(fin);
   const rudderHinge = new THREE.Group();
   rudderHinge.position.set(0, 0.84, 4.12);
@@ -273,9 +331,14 @@ export function createAircraft() {
   rudder.position.z = 0.18;
   rudderHinge.add(rudder);
   group.add(rudderHinge);
-  const stabilizer = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.1, 0.86), CREAM);
-  stabilizer.position.set(0, 0.34, 3.8);
-  group.add(stabilizer);
+  const tailplane = new THREE.Group();
+  tailplane.position.set(0, 0.19, 3.8);
+  for (const side of [-1, 1]) {
+    const panel = new THREE.Mesh(wingGeometry(side, 1.75, 0.9, 0.58, 0.12, 0.06), CREAM);
+    panel.castShadow = true;
+    tailplane.add(panel);
+  }
+  group.add(tailplane);
   const elevators = [];
   for (const side of [-1, 1]) {
     const hinge = new THREE.Group();
@@ -323,6 +386,11 @@ export function createAircraft() {
   for (const side of [-1, 1]) {
     gear.add(strut(new THREE.Vector3(side * 1.02, -0.62, -0.75), new THREE.Vector3(side * 1.52, -1.42, -0.85), 0.075));
     gear.add(tyre(side * 1.52, -1.52, -0.85, 0.46));
+    const pant = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), CREAM);
+    pant.scale.set(0.75, 0.55, 1.35);
+    pant.position.set(side * 1.52, -1.32, -0.85);
+    pant.castShadow = true;
+    gear.add(pant);
   }
   gear.add(strut(new THREE.Vector3(0, -0.42, 3.1), new THREE.Vector3(0, -1.12, 3.55), 0.05));
   gear.add(tyre(0, -1.18, 3.58, 0.24));

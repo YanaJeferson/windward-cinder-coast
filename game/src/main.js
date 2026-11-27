@@ -39,7 +39,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 1.16;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -83,15 +83,15 @@ for (const child of sky.children) {
 }
 const sunLight = sky.userData.sun;
 sunLight.castShadow = true;
-sunLight.shadow.mapSize.set(512, 512);
+sunLight.shadow.mapSize.set(2048, 2048);
 sunLight.shadow.camera.near = 10;
 sunLight.shadow.camera.far = 2600;
-sunLight.shadow.camera.left = -460;
-sunLight.shadow.camera.right = 460;
-sunLight.shadow.camera.top = 460;
-sunLight.shadow.camera.bottom = -460;
-sunLight.shadow.bias = -0.0006;
-sunLight.shadow.normalBias = 0.35;
+sunLight.shadow.camera.left = -700;
+sunLight.shadow.camera.right = 700;
+sunLight.shadow.camera.top = 700;
+sunLight.shadow.camera.bottom = -700;
+sunLight.shadow.bias = -0.0012;
+sunLight.shadow.normalBias = 0.9;
 const sea = createSea();
 scene.add(sea);
 const terrain = createTerrain();

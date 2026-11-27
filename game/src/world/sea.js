@@ -2,6 +2,43 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { WORLD, PALETTE } from '../config.js';
 
+function waterNormalTexture() {
+  const S = 256;
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const g = c.getContext('2d');
+  const img = g.createImageData(S, S);
+  const height = (x, y) => {
+    const u = (x / S) * Math.PI * 2;
+    const v = (y / S) * Math.PI * 2;
+    return Math.sin(u * 3 + Math.sin(v * 2) * 0.8) * 0.5
+      + Math.sin(v * 5 - u * 2) * 0.3
+      + Math.sin((u + v) * 7) * 0.15;
+  };
+  for (let y = 0; y < S; y += 1) {
+    for (let x = 0; x < S; x += 1) {
+      const dx = height(x + 1, y) - height(x - 1, y);
+      const dy = height(x, y + 1) - height(x, y - 1);
+      let nx = -dx * 1.8;
+      let ny = -dy * 1.8;
+      let nz = 1;
+      const len = Math.hypot(nx, ny, nz);
+      nx /= len; ny /= len; nz /= len;
+      const i = (y * S + x) * 4;
+      img.data[i] = (nx * 0.5 + 0.5) * 255;
+      img.data[i + 1] = (ny * 0.5 + 0.5) * 255;
+      img.data[i + 2] = (nz * 0.5 + 0.5) * 255;
+      img.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 8;
+  return tex;
+}
+
 export function createSea() {
   const geo = new THREE.PlaneGeometry(36000, 36000, 1, 1);
   geo.rotateX(-Math.PI / 2);
@@ -25,6 +62,7 @@ export function createSea() {
     uWorldSize: { value: WORLD.size },
     uMinH: { value: -80 },
     uMaxH: { value: 920 },
+    uNormal: { value: waterNormalTexture() },
   };
 
   const mat = new THREE.ShaderMaterial({
@@ -54,6 +92,7 @@ export function createSea() {
       uniform float uWorldSize;
       uniform float uMinH;
       uniform float uMaxH;
+      uniform sampler2D uNormal;
       varying vec3 vWorld;
       varying vec2 vUv;
 
@@ -69,11 +108,11 @@ export function createSea() {
 
       void main() {
         vec3 viewDir = normalize(cameraPosition - vWorld);
-        vec3 n = normalize(vec3(
-          sin(vWorld.x * 0.021 + uTime * 0.55) * 0.055 + sin(vWorld.z * 0.017 - uTime * 0.42) * 0.045,
-          1.0,
-          cos(vWorld.z * 0.019 + uTime * 0.37) * 0.05 + cos(vWorld.x * 0.013 - uTime * 0.31) * 0.04
-        ));
+        vec2 nuv1 = vWorld.xz * 0.0035 + vec2(uTime * 0.004, uTime * 0.0026);
+        vec2 nuv2 = vWorld.xz * 0.009 - vec2(uTime * 0.006, uTime * 0.0045);
+        vec3 n1 = texture2D(uNormal, nuv1).xyz * 2.0 - 1.0;
+        vec3 n2 = texture2D(uNormal, nuv2).xyz * 2.0 - 1.0;
+        vec3 n = normalize(vec3((n1.x + n2.x) * 0.22, 1.0, (n1.y + n2.y) * 0.22));
         float fres = pow(1.0 - clamp(dot(viewDir, n), 0.0, 1.0), 2.4);
         float shimmer = pow(max(dot(reflect(-viewDir, n), uSun), 0.0), 90.0);
         float glitter = smoothstep(0.72, 1.0, noise(vWorld.xz * 0.42 + uTime * 2.1)) * shimmer;

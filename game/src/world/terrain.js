@@ -124,7 +124,7 @@ function vertexColor(h, slope, x, z, out, ao = 1) {
     c = new THREE.Color('#cfdcb4').lerp(new THREE.Color('#e3d7b8'), patch * 1.05);
     if (slope > 0.22) c.lerp(new THREE.Color('#c9bba7'), smoothstep(0.22, 0.46, slope));
   }
-  const lit = sunBlocked(x, z, h) ? 0.56 : 1;
+  const lit = sunBlocked(x, z, h) ? 0.62 : 1;
   const shade = (0.8 + grain * 0.18 + macro * 0.16) * ao * lit;
   out.setRGB(clamp(c.r * shade, 0, 1), clamp(c.g * shade, 0, 1), clamp(c.b * shade, 0, 1));
   return out;
@@ -257,7 +257,7 @@ export function createTerrain() {
         vec3 macroTint = mix(vec3(0.72, 0.7, 0.56), vec3(1.28, 1.18, 0.96), smoothstep(0.32, 0.78, macro));
         terrainColor *= macroTint;
         vec4 sampledDiffuseColor = vec4(terrainColor, 1.0);
-        diffuseColor.rgb *= sampledDiffuseColor.rgb * 1.18 * vec3(1.08, 1.04, 0.94);
+        diffuseColor.rgb *= sampledDiffuseColor.rgb * 1.38 * vec3(1.08, 1.04, 0.94);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.94, 0.97), uSnow * 0.92);
       `,
     );

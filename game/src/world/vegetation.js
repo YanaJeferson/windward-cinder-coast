@@ -106,16 +106,33 @@ export function createVegetation() {
   if (conifers.instanceColor) conifers.instanceColor.needsUpdate = true;
   if (broads.instanceColor) broads.instanceColor.needsUpdate = true;
 
-  // Soft contact discs under the trees.
+  // Cast-shadow ellipses under the trees, stretched away from the sun. They keep the forest
+  // grounded beyond the local real-time shadow camera.
+  const sunAz = (WORLD.sun.azimuth * Math.PI) / 180;
+  const sunEl = (WORLD.sun.elevation * Math.PI) / 180;
+  const shadowLen = 1 / Math.tan(sunEl);
+  const sunHX = Math.sin(sunAz);
+  const sunHZ = -Math.cos(sunAz);
+  const shadowAngle = Math.atan2(-sunHX, -sunHZ);
+
   const discGeo = new THREE.CircleGeometry(2.3, 8);
   discGeo.rotateX(-Math.PI / 2);
-  const discMat = new THREE.MeshBasicMaterial({ color: '#1b2418', transparent: true, opacity: 0.24, depthWrite: false });
+  const discMat = new THREE.MeshBasicMaterial({ color: '#1b2418', transparent: true, opacity: 0.18, depthWrite: false });
   const discs = new THREE.InstancedMesh(discGeo, discMat, count);
+  const treeQ = new THREE.Quaternion();
   for (let i = 0; i < placed; i += 1) {
     trunks.getMatrixAt(i, m);
     const p = new THREE.Vector3().setFromMatrixPosition(m);
     const sc = new THREE.Vector3().setFromMatrixScale(m);
-    const sm = new THREE.Matrix4().compose(new THREE.Vector3(p.x, p.y + 0.08, p.z), new THREE.Quaternion(), new THREE.Vector3(sc.x * 1.2, 1, sc.z * 1.2));
+    const h = Math.max(3, sc.y * 5.4);
+    const len = h * shadowLen;
+    const off = len * 0.5;
+    treeQ.setFromAxisAngle(new THREE.Vector3(0, 1, 0), shadowAngle);
+    const sm = new THREE.Matrix4().compose(
+      new THREE.Vector3(p.x - sunHX * off, p.y + 0.07, p.z - sunHZ * off),
+      treeQ,
+      new THREE.Vector3(len * 0.55 + 0.8, 1, h * 0.28 + 0.9),
+    );
     discs.setMatrixAt(i, sm);
   }
   discs.count = placed;

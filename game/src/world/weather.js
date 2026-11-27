@@ -13,7 +13,7 @@ const PRESETS = {
   sunny: {
     label: 'SUNNY', bg: 'photo', bgInt: 1,
     fog: '#c9d5da', fogNear: 5000, fogFar: 22000,
-    sunColor: '#fff0d2', sunIntensity: 2.8, hemiSky: '#c8dcea', hemiGround: '#5b4a36', hemiIntensity: 1.2,
+    sunColor: '#fff0d2', sunIntensity: 3.2, hemiSky: '#c8dcea', hemiGround: '#5b4a36', hemiIntensity: 1.5,
     seaDeep: '#2b8fa3', seaShallow: '#7fd8c8', seaSky: '#cfe4f0', seaFog: '#c9d5da', seaFogNear: 900, seaFogFar: 18000,
     rain: false, snow: false, snowGround: 0, lightning: false, env: 0.55, landingLight: false,
     wind: { from: 250, speed: 3, gust: 1.2 },
