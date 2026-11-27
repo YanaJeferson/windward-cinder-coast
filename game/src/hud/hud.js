@@ -317,7 +317,7 @@ export function createHud(canvas) {
     g.fillStyle = DIM;
     g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
     const total = mission.gates.length;
-    const dist = nextGate ? `${(nextGate / 1000).toFixed(1)} KM` : total ? 'FINAL' : 'LAND 36';
+    const dist = nextGate ? `${(nextGate / 1000).toFixed(1)} KM` : total ? 'FINAL' : 'PISTA 36';
     g.fillText(total ? `${mission.gateIndex + 1}/${total}  ${dist}` : dist, x - 12 * s, y + 51 * s);
     const timed = mission.timeLimit !== null;
     g.fillStyle = timed && mission.timeLeft < 30 ? WARN : CREAM;
@@ -325,7 +325,7 @@ export function createHud(canvas) {
     g.fillText(timed ? formatTime(mission.timeLeft) : `FREE ${formatTime(mission.elapsed)}`, x - 12 * s, y + 72 * s);
     g.fillStyle = flight.assist ? TEAL : AMBER;
     g.font = `600 ${8 * s}px "Helvetica Neue", Arial, sans-serif`;
-    g.fillText(flight.assist ? 'ASSIST' : 'PRO', x - 12 * s, y + 83 * s);
+    g.fillText(flight.assist ? 'ASIST' : 'PRO', x - 12 * s, y + 83 * s);
   }
 
   function draw(state) {
@@ -366,12 +366,12 @@ export function createHud(canvas) {
       g.fillStyle = 'rgba(255,241,210,0.62)';
       g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
       const w = state.wind;
-      g.fillText(`WIND ${pad(w.from, 3)}° / ${Math.round(w.speed)} KT${w.gust ? ' G' + Math.round(w.gust) : ''}`, 34 * s, 68 * s);
+      g.fillText(`VIENTO ${pad(w.from, 3)}° / ${Math.round(w.speed)} KT${w.gust ? ' R' + Math.round(w.gust) : ''}`, 34 * s, 68 * s);
     }
     if (state.engine) {
       g.fillStyle = state.engine === 'OUT' ? AMBER : state.engine === 'START' ? TEAL : 'rgba(255,241,210,0.55)';
       g.font = `600 ${9.5 * s}px "SF Mono", Consolas, monospace`;
-      g.fillText(`ENGINE ${state.engine}`, 34 * s, 84 * s);
+      g.fillText(`MOTOR ${state.engine}`, 34 * s, 84 * s);
     }
     if (state.weatherLabel) {
       g.fillStyle = 'rgba(255,241,210,0.5)';
@@ -516,6 +516,11 @@ export function createHud(canvas) {
       g.fillStyle = 'rgba(8,12,14,0.62)';
       g.fillRect(0, 0, W, H);
       state.stage(g, W, H, s);
+    }
+
+    if (state.fade > 0) {
+      g.fillStyle = `rgba(4,8,11,${Math.min(1, state.fade)})`;
+      g.fillRect(0, 0, W, H);
     }
   }
 

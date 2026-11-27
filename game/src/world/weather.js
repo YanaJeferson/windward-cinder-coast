@@ -6,12 +6,12 @@ import { createRandom } from '../util/math.js';
 
 export const WEATHER_CHOICES = ['auto', 'sunny', 'sunset', 'windy', 'rain', 'storm', 'fog', 'snow', 'night'];
 export const WEATHER_LABELS = {
-  auto: 'AUTO', sunny: 'SUNNY', sunset: 'SUNSET', windy: 'WINDY', rain: 'RAIN', storm: 'STORM', fog: 'FOG', snow: 'SNOW', night: 'NIGHT',
+  auto: 'AUTO', sunny: 'SOL', sunset: 'ATARDECER', windy: 'VIENTO', rain: 'LLUVIA', storm: 'TORMENTA', fog: 'NIEBLA', snow: 'NIEVE', night: 'NOCHE',
 };
 
 const PRESETS = {
   sunny: {
-    label: 'SUNNY', bg: 'photo', bgInt: 1,
+    label: 'SOL', bg: 'photo', bgInt: 1,
     fog: '#c9d5da', fogNear: 5000, fogFar: 22000,
     sunColor: '#fff0d2', sunIntensity: 3.2, hemiSky: '#c8dcea', hemiGround: '#5b4a36', hemiIntensity: 1.5,
     seaDeep: '#2b8fa3', seaShallow: '#7fd8c8', seaSky: '#cfe4f0', seaFog: '#c9d5da', seaFogNear: 900, seaFogFar: 18000,
@@ -19,7 +19,7 @@ const PRESETS = {
     wind: { from: 250, speed: 3, gust: 1.2 },
   },
   sunset: {
-    label: 'SUNSET', bg: 'sunset', bgInt: 1, bgBlur: 0, sunAzimuth: 300, sunElevation: 11.5, envKind: 'sunset',
+    label: 'ATARDECER', bg: 'sunset', bgInt: 1, bgBlur: 0, sunAzimuth: 300, sunElevation: 11.5, envKind: 'sunset',
     fog: '#d89d7c', fogNear: 1700, fogFar: 15500,
     sunColor: '#ffb178', sunIntensity: 2.6, hemiSky: '#ffd3b0', hemiGround: '#5c3d33', hemiIntensity: 1.2,
     seaDeep: '#1d5162', seaShallow: '#69b4ad', seaSky: '#ffc08a', seaFog: '#d59a76', seaFogNear: 700, seaFogFar: 13000,
@@ -27,7 +27,7 @@ const PRESETS = {
     wind: { from: 250, speed: 4, gust: 1.5 },
   },
   windy: {
-    label: 'WINDY', bg: 'photo', bgInt: 1,
+    label: 'VIENTO', bg: 'photo', bgInt: 1,
     fog: '#c4d2d9', fogNear: 4500, fogFar: 20000,
     sunColor: '#fff0d2', sunIntensity: 2.7, hemiSky: '#c8dcea', hemiGround: '#5b4a36', hemiIntensity: 1.15,
     seaDeep: '#287f93', seaShallow: '#79d4c4', seaSky: '#cfe4f0', seaFog: '#c9d5da', seaFogNear: 800, seaFogFar: 17000,
@@ -35,7 +35,7 @@ const PRESETS = {
     wind: { from: 262, speed: 14, gust: 7 },
   },
   rain: {
-    label: 'RAIN', bg: 'photo', bgInt: 0.55,
+    label: 'LLUVIA', bg: 'photo', bgInt: 0.55,
     fog: '#8b979d', fogNear: 800, fogFar: 7500,
     sunColor: '#d8e2e6', sunIntensity: 0.8, hemiSky: '#9fb2bd', hemiGround: '#3f443d', hemiIntensity: 0.85,
     seaDeep: '#244b56', seaShallow: '#5e8b8d', seaSky: '#9baeb6', seaFog: '#8b979d', seaFogNear: 300, seaFogFar: 7000,
@@ -43,7 +43,7 @@ const PRESETS = {
     wind: { from: 245, speed: 8, gust: 3 },
   },
   storm: {
-    label: 'STORM', bg: 'photo', bgInt: 0.25,
+    label: 'TORMENTA', bg: 'photo', bgInt: 0.25,
     fog: '#5f6b72', fogNear: 350, fogFar: 4800,
     sunColor: '#b9c6cc', sunIntensity: 0.35, hemiSky: '#829298', hemiGround: '#343a38', hemiIntensity: 0.7,
     seaDeep: '#1d3a45', seaShallow: '#416f72', seaSky: '#7f8f94', seaFog: '#5f6b72', seaFogNear: 180, seaFogFar: 5000,
@@ -51,7 +51,7 @@ const PRESETS = {
     wind: { from: 250, speed: 12, gust: 6 },
   },
   fog: {
-    label: 'FOG', bg: 'fog', bgInt: 1,
+    label: 'NIEBLA', bg: 'fog', bgInt: 1,
     fog: '#c3ced1', fogNear: 100, fogFar: 3000,
     sunColor: '#e7edf0', sunIntensity: 1.0, hemiSky: '#c7d5dc', hemiGround: '#5a5a50', hemiIntensity: 1.05,
     seaDeep: '#4d6f78', seaShallow: '#8aa6a6', seaSky: '#c3ced1', seaFog: '#c3ced1', seaFogNear: 60, seaFogFar: 2600,
@@ -59,7 +59,7 @@ const PRESETS = {
     wind: { from: 230, speed: 2, gust: 1 },
   },
   snow: {
-    label: 'SNOW', bg: 'overcast', bgInt: 1,
+    label: 'NIEVE', bg: 'overcast', bgInt: 1,
     fog: '#cfd8dc', fogNear: 300, fogFar: 5200,
     sunColor: '#eaf1f5', sunIntensity: 0.85, hemiSky: '#dbe8f2', hemiGround: '#60625c', hemiIntensity: 1.35,
     seaDeep: '#3f6570', seaShallow: '#83a8aa', seaSky: '#cfd8dc', seaFog: '#cfd8dc', seaFogNear: 200, seaFogFar: 5000,
@@ -67,7 +67,7 @@ const PRESETS = {
     wind: { from: 280, speed: 5, gust: 2 },
   },
   night: {
-    label: 'NIGHT', bg: 'night', bgInt: 1,
+    label: 'NOCHE', bg: 'night', bgInt: 1,
     fog: '#0a141c', fogNear: 1600, fogFar: 12000,
     sunColor: '#9bb8d8', sunIntensity: 0.18, hemiSky: '#24384d', hemiGround: '#0a0f12', hemiIntensity: 0.32,
     seaDeep: '#06161f', seaShallow: '#163640', seaSky: '#1d3040', seaFog: '#0a141c', seaFogNear: 700, seaFogFar: 9000,

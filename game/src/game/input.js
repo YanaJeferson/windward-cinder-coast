@@ -115,7 +115,9 @@ export function createInput(canvas) {
 
   function axes() {
     const has = (...codes) => codes.some((code) => keys.has(code));
-    let pitch = (has('KeyS', 'ArrowDown', 'KeyK') ? 1 : 0) - (has('KeyW', 'ArrowUp', 'KeyI') ? 1 : 0);
+    // Up/W raises the nose (and climbs); down/S lowers it. This is the keyboard convention the
+    // title screen promises, and it keeps the arrows and WASD agreeing with each other.
+    let pitch = (has('KeyW', 'ArrowUp', 'KeyI') ? 1 : 0) - (has('KeyS', 'ArrowDown', 'KeyK') ? 1 : 0);
     let roll = (has('KeyD', 'ArrowRight', 'KeyL') ? 1 : 0) - (has('KeyA', 'ArrowLeft', 'KeyJ') ? 1 : 0);
     let yaw = (has('KeyE') ? 1 : 0) - (has('KeyQ') ? 1 : 0);
     if (mouseSteer) {

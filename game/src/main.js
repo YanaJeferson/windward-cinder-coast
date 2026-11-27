@@ -227,6 +227,13 @@ let menuPanel = null;
 let menuToast = '';
 let menuToastUntil = 0;
 let titleHits = [];
+let toastText = '';
+let toastUntil = 0;
+let fadeIn = 0;
+function toast(text, ms = 2200) {
+  toastText = text;
+  toastUntil = performance.now() + ms;
+}
 const menuImage = new Image();
 menuImage.src = new URL('../assets/menu-valley.jpg', import.meta.url).href;
 let weatherChoice = 'auto';
@@ -318,6 +325,7 @@ function beginMission(index) {
   flight.state.stopped = false;
   flight.state.vertical = 0;
   flight.state.lastY = s.y;
+  flight.state.groundY = s.ground ? s.y : WORLD.runway.elevation + 1.55;
   flight.state.engineOn = !s.engineOff;
   flight.state.engineStarting = 0;
   flight.state.parkingBrake = Boolean(s.parking);
@@ -327,6 +335,7 @@ function beginMission(index) {
   plane.visible = true;
   crashStarted = false;
   crashFlash = 0;
+  screen = SCREENS.BRIEF;
   applyWeather();
   setHeading(flight.state, s.heading);
   flight.state.heading = s.heading;
@@ -334,13 +343,13 @@ function beginMission(index) {
   rig.setMode('chase');
   elapsed = 0;
   resultDelay = 0;
-  screen = SCREENS.BRIEF;
   hudCanvas.style.pointerEvents = 'none';
   say(mission, ...(def.radio?.start ?? ['TOWER', 'Cleared.']));
   announce(`${def.name}. Press Enter to fly.`);
 }
 
 function startFlying() {
+  fadeIn = 1;
   screen = SCREENS.FLY;
   hudCanvas.style.pointerEvents = 'none';
   audio.start();
@@ -376,6 +385,14 @@ function handleInput() {
   const actions = input.takeActions();
   if (screen === SCREENS.TITLE) {
     if (menuPanel) {
+      if (menuPanel === 'missions') {
+        if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW') || input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) selectMission(selected - 1);
+        if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS') || input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) selectMission(selected + 1);
+        if (actions & ACTIONS.CONFIRM) {
+          menuPanel = null;
+          beginMission(selected);
+        }
+      }
       if (actions & (ACTIONS.CONFIRM | ACTIONS.PAUSE)) menuPanel = null;
       return;
     }
@@ -392,15 +409,19 @@ function handleInput() {
     if (actions & ACTIONS.CONFIRM) startFlying();
     if (actions & ACTIONS.PAUSE) toTitle();
   } else if (screen === SCREENS.FLY) {
-    if (actions & ACTIONS.WEATHER_NEXT) cycleWeather(1);
-    if (actions & ACTIONS.WEATHER_PREV) cycleWeather(-1);
+    if (actions & ACTIONS.WEATHER_NEXT) { cycleWeather(1); toast(`CLIMA · ${weather.label}`, 1600); }
+    if (actions & ACTIONS.WEATHER_PREV) { cycleWeather(-1); toast(`CLIMA · ${weather.label}`, 1600); }
     if (actions & ACTIONS.PAUSE) screen = SCREENS.PAUSE;
     if (actions & ACTIONS.CAMERA) {
       const order = ['chase', 'cockpit', 'wing'];
       rig.setMode(order[(order.indexOf(rig.mode) + 1) % order.length]);
       cockpit.group.visible = rig.mode === 'cockpit';
+      toast(`CÁMARA · ${rig.mode === 'chase' ? 'PERSECUCIÓN' : rig.mode === 'cockpit' ? 'CABINA' : 'ALA'}`);
     }
-    if (actions & ACTIONS.FLIGHTMODE) flight.state.assist = !flight.state.assist;
+    if (actions & ACTIONS.FLIGHTMODE) {
+      flight.state.assist = !flight.state.assist;
+      toast(flight.state.assist ? 'ASISTENCIA ON' : 'ASISTENCIA OFF', 2200);
+    }
     if (actions & ACTIONS.ENGINE) {
       const wasOff = !flight.state.engineOn;
       flight.toggleEngine();
@@ -498,31 +519,47 @@ function groundPrompt() {
   const f = flight.state;
   if (!f.onGround || screen !== SCREENS.FLY) return null;
   const kt = speedKts(f);
-  if (f.engineStarting > 0) return { text: 'STARTING ENGINE…', color: PALETTE.teal };
-  if (!f.engineOn) return { text: 'ENGINE OUT · PRESS X TO START', color: PALETTE.warning };
-  if (f.parkingBrake) return { text: 'PARKING BRAKE · PRESS B TO RELEASE', color: PALETTE.amber };
-  if (mission?.airborne && mission.gateIndex >= mission.gates.length && mission.def.landing && kt > 4) {
-    return { text: 'BRAKE · SPACE · OR B FOR PARKING BRAKE', color: PALETTE.teal };
+  if (f.engineStarting > 0) return { text: 'ARRANCANDO MOTOR…', color: PALETTE.teal };
+  if (!f.engineOn) return { text: 'MOTOR PARADO · PULSA X PARA ARRANCAR', color: PALETTE.warning };
+  if (f.parkingBrake) return { text: 'FRENO PUESTO · PULSA B PARA SOLTAR', color: PALETTE.amber };
+  const onRunway = Math.abs(f.position.x - WORLD.runway.x) < WORLD.runway.width / 2
+    && Math.abs(f.position.z - WORLD.runway.z) < WORLD.runway.length / 2;
+  if (f.speed > 3 && onRunway && mission?.def.landing && mission.gateIndex >= mission.gates.length) {
+    return { text: 'FRENA · ESPACIO · RODA HASTA PARAR', color: PALETTE.teal };
   }
-  if (f.throttle < 0.75) return { text: `HOLD SHIFT FOR POWER · ${Math.round(kt)} KT`, color: PALETTE.amber };
-  if (kt < 58) return { text: `TAKEOFF · PULL S / ↓ TO ROTATE · ${Math.round(kt)} KT`, color: PALETTE.cream };
-  return { text: 'ROTATE · PULL S / ↓', color: PALETTE.amber };
+  if (mission?.airborne && mission.gateIndex >= mission.gates.length && mission.def.landing && kt > 4) {
+    return { text: 'FRENA CON ESPACIO O B (FRENO DE MANO)', color: PALETTE.teal };
+  }
+  if (f.throttle < 0.75) return { text: `MANTÉN MAYÚS PARA POTENCIA · ${Math.round(kt)} KT`, color: PALETTE.amber };
+  if (kt < 58) return { text: `DESPEGUE · TIRA ↑/W PARA ROTAR · ${Math.round(kt)} KT`, color: PALETTE.cream };
+  return { text: 'ROTA · TIRA ↑/W', color: PALETTE.amber };
 }
 
 function warnings() {
   const out = [];
   const f = flight.state;
-  if (f.stall) out.push({ text: 'STALL', color: PALETTE.warning });
-  else if (!f.onGround && f.speed < AIRCRAFT.stallSpeed + 6) out.push({ text: 'LOW SPEED', color: PALETTE.amber });
+  if (f.stall) out.push({ text: 'PÉRDIDA', color: PALETTE.warning });
+  if (f.onGround && f.rotateCall) out.push({ text: 'ROTA', color: PALETTE.teal });
+  if (f.engineStarting > 0) out.push({ text: 'ARRANCANDO', color: PALETTE.amber });
+  if (f.parkingBrake && f.onGround) out.push({ text: 'FRENO PUESTO', color: PALETTE.amber });
+  if (f.overspeed) out.push({ text: 'EXCESO DE VELOCIDAD', color: PALETTE.warning });
+  if (performance.now() < toastUntil && toastText) out.push({ text: toastText, color: PALETTE.teal });
+  else if (!f.onGround && f.speed < AIRCRAFT.stallSpeed + 6) out.push({ text: 'POCA VELOCIDAD', color: PALETTE.amber });
   const ground = sampleHeight(f.position.x, f.position.z);
-  if (!f.onGround && f.position.y - ground < 45 && f.vertical < -6) out.push({ text: 'TERRAIN', color: PALETTE.warning });
-  if (!f.engineOn && !f.onGround) out.push({ text: 'ENGINE OUT · GLIDE 75 KT', color: PALETTE.amber });
-  if (f.fuel < 18) out.push({ text: 'FUEL LOW', color: PALETTE.amber });
+  if (!f.onGround && f.position.y - ground < 45 && f.vertical < -6) out.push({ text: 'TERRENO', color: PALETTE.warning });
+  if (!f.engineOn && !f.onGround) out.push({ text: 'SIN MOTOR · PLANEA 75 KT', color: PALETTE.amber });
+  if (f.fuel < 18) out.push({ text: 'COMBUSTIBLE BAJO', color: PALETTE.amber });
   if (mission && mission.gateIndex >= activeGates.length && mission.def.landing && !f.gearDown && f.position.y < 260) {
-    out.push({ text: 'GEAR UP', color: PALETTE.amber });
+    out.push({ text: 'TREN ARRIBA', color: PALETTE.amber });
   }
-  if (showHelp) out.push({ text: 'W/S PITCH  A/D ROLL  SHIFT/CTRL THROTTLE  C CAMERA  G GEAR  F FLAPS', color: 'rgba(255,241,210,0.75)' });
+  if (showHelp) out.push({ text: '↑/W SUBIR · ↓/S BAJAR · A/D ALABEO · Q/E TIMÓN · MAYÚS POTENCIA · C CÁMARA · G TREN · F FLAPS', color: 'rgba(255,241,210,0.75)' });
   return out;
+}
+
+function clampCameraToGround() {
+  if (rig.mode === 'cockpit') return;
+  const floor = sampleHeight(camera.position.x, camera.position.z) + 2.4;
+  if (camera.position.y < floor) camera.position.y = floor;
 }
 
 function setCockpitShell(on) {
@@ -565,6 +602,7 @@ function updateWorld(dt) {
   effects.update(dt);
   updateTrails(dt);
   crashFlash = Math.max(0, crashFlash - dt * 1.4);
+  fadeIn = Math.max(0, fadeIn - dt * 3.4);
   updateGates(activeGates, mission ? mission.gateIndex : 0, time);
   if (activeBeacon && mission && mission.gateIndex >= 2) {
     activeBeacon.userData.column.material.opacity = 0.28 + Math.sin(time * 4) * 0.1;
@@ -590,6 +628,7 @@ function renderFrame(dt) {
     plane.position.copy(flight.state.position);
     plane.quaternion.copy(flight.state.quaternion);
     rig.update(flight.state, dt, time);
+    clampCameraToGround();
     updateWorld(dt);
     hud.draw({ hideHud: true, stage: drawBrief });
   } else if (screen === SCREENS.FLY || screen === SCREENS.PAUSE) {
@@ -599,6 +638,7 @@ function renderFrame(dt) {
     cockpit.group.visible = rig.mode === 'cockpit';
     setCockpitShell(rig.mode === 'cockpit');
     rig.update(flight.state, dt, time);
+    clampCameraToGround();
     updateWorld(dt);
     cockpit.update(flight.state, dt, activeGates, mission ? mission.gateIndex : 0);
     if (screen === SCREENS.FLY) {
@@ -612,11 +652,12 @@ function renderFrame(dt) {
         weatherLabel: weather.label,
         speedFx: flight.state.onGround ? 0 : Math.max(0, Math.min(1, (flight.state.speed - 42) / 45)),
         flash: crashFlash,
-        engine: flight.state.engineOn ? (flight.state.engineStarting > 0 ? 'START' : 'ON') : 'OUT',
+        engine: flight.state.engineOn ? (flight.state.engineStarting > 0 ? 'ARRANQUE' : 'MARCHA') : 'PARADO',
         touchdown: flight.state.onGround && flight.state.touchdownAt !== null && flight.state.time - flight.state.touchdownAt < 4
           ? `TOUCHDOWN · ${flight.state.landingGrade} · ${Math.round(flight.state.touchdownRate * 196.85)} FPM`
           : null,
         groundPrompt: groundPrompt(),
+        fade: fadeIn,
         keys: elapsed < 10 || showHelp ? input.activeKeys() : null,
       });
     } else {
@@ -632,6 +673,7 @@ function renderFrame(dt) {
     plane.position.copy(flight.state.position);
     plane.quaternion.copy(flight.state.quaternion);
     rig.update(flight.state, dt, time);
+    clampCameraToGround();
     updateWorld(dt);
     hud.draw({
       flight: flight.state,
@@ -678,7 +720,8 @@ function roundRect(g, x, y, w, h, r) {
 }
 
 function activateTitle() {
-  if (menuIndex === 0 || menuIndex === 1) beginMission(selected);
+  if (menuIndex === 0) beginMission(selected);
+  else if (menuIndex === 1) menuPanel = 'missions';
   else if (menuIndex === 2) menuPanel = 'settings';
   else if (menuIndex === 3) menuPanel = 'achievements';
   else { menuToast = 'Cierra la pestaña para salir'; menuToastUntil = performance.now() + 4000; }
@@ -686,6 +729,8 @@ function activateTitle() {
 
 function drawTitle(g, W, H, s) {
   titleHits = [];
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
   const panel = (x, y, w, h, r = 12, fill = 'rgba(7,11,14,0.84)') => {
     roundRect(g, x, y, w, h, r);
     g.fillStyle = fill;
@@ -941,10 +986,10 @@ function drawTitle(g, W, H, s) {
   g.textAlign = 'right';
   g.fillStyle = '#f5edda';
   g.font = `700 ${24 * s}px "SF Mono", Consolas, monospace`;
-  g.fillText('248', gx - 38 * s, gy + 4 * s);
+  g.fillText('118', gx - 38 * s, gy + 4 * s);
   g.fillStyle = 'rgba(245,237,218,0.55)';
   g.font = `600 ${8 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('KM/H', gx - 38 * s, gy + 18 * s);
+  g.fillText('KT', gx - 38 * s, gy + 18 * s);
   g.textAlign = 'left';
   g.fillStyle = '#f5edda';
   g.font = `700 ${19 * s}px "SF Mono", Consolas, monospace`;
@@ -959,30 +1004,87 @@ function drawTitle(g, W, H, s) {
   g.fillText('Surca los cielos, descubre un mundo lleno de secretos…', 34 * s, H - 18 * s);
 
   if (menuPanel) {
-    g.fillStyle = 'rgba(5,9,12,0.62)';
+    g.fillStyle = 'rgba(5,9,12,0.66)';
     g.fillRect(0, 0, W, H);
-    const pw2 = 560 * s;
-    const ph2 = 300 * s;
-    const x2 = (W - pw2) / 2;
-    const y2 = (H - ph2) / 2;
-    panel(x2, y2, pw2, ph2, 14, 'rgba(12,18,22,0.92)');
-    g.textAlign = 'left';
-    g.fillStyle = '#f5edda';
-    g.font = `700 ${22 * s}px "Helvetica Neue", Arial, sans-serif`;
-    g.fillText(menuPanel === 'settings' ? 'Configuración' : 'Logros', x2 + 28 * s, y2 + 44 * s);
-    g.fillStyle = 'rgba(245,237,218,0.7)';
-    g.font = `400 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
-    if (menuPanel === 'settings') {
-      g.fillText(`Clima: ${weather.label}   (T cambia)`, x2 + 28 * s, y2 + 86 * s);
-      g.fillText('Sombras y texturas: completas', x2 + 28 * s, y2 + 112 * s);
-      g.fillText('Cámara: C   ·   Motor: X   ·   Freno: B', x2 + 28 * s, y2 + 138 * s);
-      g.fillText('ENTER o ESC para cerrar', x2 + 28 * s, y2 + ph2 - 28 * s);
+    if (menuPanel === 'missions') {
+      const pw2 = 820 * s;
+      const ph2 = 486 * s;
+      const x2 = (W - pw2) / 2;
+      const y2 = (H - ph2) / 2;
+      panel(x2, y2, pw2, ph2, 14, 'rgba(10,15,19,0.94)');
+      g.textAlign = 'left';
+      g.fillStyle = '#f5edda';
+      g.font = `700 ${22 * s}px "Helvetica Neue", Arial, sans-serif`;
+      g.fillText('Misiones', x2 + 30 * s, y2 + 44 * s);
+      g.fillStyle = 'rgba(245,237,218,0.45)';
+      g.font = `500 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
+      g.fillText(`${missions.length} SALIDAS SOBRE CINDER COAST`, x2 + 30 * s, y2 + 63 * s);
+      const cols = 2;
+      const rows = Math.ceil(missions.length / cols);
+      const cellW = (pw2 - 60 * s - 24 * s) / cols;
+      const cellH = 56 * s;
+      const top = y2 + 88 * s;
+      missions.forEach((m, i) => {
+        const col = Math.floor(i / rows);
+        const row = i % rows;
+        const cx2 = x2 + 30 * s + col * (cellW + 24 * s);
+        const cy2 = top + row * (cellH + 4 * s);
+        const isSel = i === selected;
+        if (isSel) {
+          roundRect(g, cx2, cy2, cellW, cellH - 4 * s, 8);
+          const hg = g.createLinearGradient(cx2, cy2, cx2 + cellW, cy2);
+          hg.addColorStop(0, 'rgba(46,112,78,0.85)');
+          hg.addColorStop(1, 'rgba(16,34,28,0.7)');
+          g.fillStyle = hg;
+          g.fill();
+          g.strokeStyle = 'rgba(126,230,177,0.35)';
+          g.lineWidth = 1;
+          g.stroke();
+          g.fillStyle = '#76e0af';
+          g.fillRect(cx2, cy2 + 8 * s, 3 * s, cellH - 20 * s);
+        }
+        g.fillStyle = isSel ? '#f5edda' : 'rgba(245,237,218,0.78)';
+        g.font = `${isSel ? 700 : 500} ${14 * s}px "Helvetica Neue", Arial, sans-serif`;
+        g.fillText(m.name, cx2 + 16 * s, cy2 + 24 * s);
+        g.fillStyle = isSel ? 'rgba(245,237,218,0.6)' : 'rgba(245,237,218,0.34)';
+        g.font = `400 ${9 * s}px "Helvetica Neue", Arial, sans-serif`;
+        const kindLabel = m.kind === 'race' ? 'CONTRARRELOJ'
+          : m.kind === 'free' ? 'SIN RELOJ'
+            : m.kind === 'training' ? 'INSTRUCCIÓN'
+              : m.kind === 'challenge' ? 'DESAFÍO'
+                : 'MISIÓN';
+        g.fillText(`${kindLabel} · ${m.weather.toUpperCase()}${m.landing ? ' · ATERRIZAJE' : ''}`, cx2 + 16 * s, cy2 + 40 * s);
+      });
+      g.fillStyle = 'rgba(245,237,218,0.5)';
+      g.font = `500 ${10 * s}px "Segoe UI", Arial, sans-serif`;
+      wrap(g, missions[selected].brief, x2 + 30 * s, y2 + ph2 - 52 * s, pw2 - 60 * s, 13 * s);
+      g.fillStyle = 'rgba(245,237,218,0.72)';
+      g.font = `600 ${10 * s}px "SF Mono", Consolas, monospace`;
+      g.fillText('↑ ↓  ELEGIR     ENTER  VOLAR     ESC  VOLVER', x2 + 30 * s, y2 + ph2 - 16 * s);
     } else {
-      g.fillText('· Primer vuelo', x2 + 28 * s, y2 + 88 * s);
-      g.fillText('· Aterrizaje suave', x2 + 28 * s, y2 + 114 * s);
-      g.fillText('· Motor en marcha', x2 + 28 * s, y2 + 140 * s);
-      g.fillText('· Vuelo nocturno', x2 + 28 * s, y2 + 166 * s);
-      g.fillText('ENTER o ESC para cerrar', x2 + 28 * s, y2 + ph2 - 28 * s);
+      const pw2 = 560 * s;
+      const ph2 = 300 * s;
+      const x2 = (W - pw2) / 2;
+      const y2 = (H - ph2) / 2;
+      panel(x2, y2, pw2, ph2, 14, 'rgba(12,18,22,0.92)');
+      g.textAlign = 'left';
+      g.fillStyle = '#f5edda';
+      g.font = `700 ${22 * s}px "Helvetica Neue", Arial, sans-serif`;
+      g.fillText(menuPanel === 'settings' ? 'Configuración' : 'Logros', x2 + 28 * s, y2 + 44 * s);
+      g.fillStyle = 'rgba(245,237,218,0.7)';
+      g.font = `400 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
+      if (menuPanel === 'settings') {
+        g.fillText(`Clima: ${weather.label}   (T cambia)`, x2 + 28 * s, y2 + 86 * s);
+        g.fillText('Sombras y texturas: completas', x2 + 28 * s, y2 + 112 * s);
+        g.fillText('Cámara: C   ·   Motor: X   ·   Freno: B', x2 + 28 * s, y2 + 138 * s);
+        g.fillText('ENTER o ESC para cerrar', x2 + 28 * s, y2 + ph2 - 28 * s);
+      } else {
+        g.fillText('· Primer vuelo', x2 + 28 * s, y2 + 88 * s);
+        g.fillText('· Aterrizaje suave', x2 + 28 * s, y2 + 114 * s);
+        g.fillText('· Motor en marcha', x2 + 28 * s, y2 + 140 * s);
+        g.fillText('· Vuelo nocturno', x2 + 28 * s, y2 + 166 * s);
+        g.fillText('ENTER o ESC para cerrar', x2 + 28 * s, y2 + ph2 - 28 * s);
+      }
     }
   }
 
@@ -999,11 +1101,13 @@ function drawTitle(g, W, H, s) {
 }
 
 function drawBrief(g, W, H, s) {
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
   const w = Math.min(760 * s, W - 80 * s);
   const h = 404 * s;
   const x = (W - w) / 2;
   const y = (H - h) / 2;
-  g.fillStyle = 'rgba(10,15,17,0.82)';
+  g.fillStyle = 'rgba(9,14,17,0.93)';
   g.fillRect(x, y, w, h);
   g.strokeStyle = 'rgba(255,180,92,0.45)';
   g.strokeRect(x + 0.5, y + 0.5, w, h);
@@ -1013,59 +1117,93 @@ function drawBrief(g, W, H, s) {
   g.textAlign = 'left';
   g.fillStyle = PALETTE.amber;
   g.font = `700 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('SORTIE BRIEF', x + 38 * s, y + 44 * s);
+  g.fillText('ORDEN DE VUELO', x + 38 * s, y + 44 * s);
   g.fillStyle = PALETTE.cream;
   g.font = `700 ${34 * s}px "Helvetica Neue", Arial, sans-serif`;
   g.fillText(mission.name.toUpperCase(), x + 38 * s, y + 86 * s);
   g.fillStyle = 'rgba(255,241,210,0.82)';
   g.font = `500 ${13.5 * s}px "Helvetica Neue", Arial, sans-serif`;
   wrap(g, mission.brief, x + 38 * s, y + 124 * s, w - 76 * s, 22 * s);
+  g.fillStyle = 'rgba(255,241,210,0.72)';
+  g.font = `600 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText(mission.def.objective, x + 38 * s, y + h - 128 * s);
   g.fillStyle = 'rgba(255,241,210,0.5)';
   g.font = `600 ${11 * s}px "SF Mono", Consolas, monospace`;
-  const rings = mission.gates.length ? `${mission.gates.length} RINGS` : 'NO RINGS';
-  const clock = mission.timeLimit !== null ? formatTime(mission.timeLimit) : 'NO CLOCK';
-  const finish = mission.def.landing ? 'LANDING REQUIRED' : 'TIMED RUN';
+  const rings = mission.gates.length ? `${mission.gates.length} ANILLOS` : 'SIN ANILLOS';
+  const clock = mission.timeLimit !== null ? formatTime(mission.timeLimit) : 'SIN RELOJ';
+  const finish = mission.def.landing ? 'ATERRIZAJE OBLIGATORIO' : 'CONTRARRELOJ';
   const wx = weather.label;
   g.fillText(`${rings}   ${clock}   ${finish}   ${wx}`, x + 38 * s, y + h - 96 * s);
   g.fillStyle = PALETTE.amber;
   g.font = `700 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('ENTER  FLY', x + 38 * s, y + h - 64 * s);
+  g.fillText('ENTER  VOLAR', x + 38 * s, y + h - 64 * s);
   g.fillStyle = 'rgba(255,241,210,0.4)';
-  g.font = `500 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
   g.font = `500 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('W/↑ PUSH · S/↓ PULL · A/D ROLL · SHIFT THROTTLE · X ENGINE · B PARK · G GEAR · F FLAPS · C CAMERA · V ASSIST · T WEATHER', x + 38 * s, y + h - 38 * s);
+  g.fillText('↑/W SUBIR · ↓/S BAJAR · A/D ALABEO · Q/E TIMÓN · MAYÚS POTENCIA', x + 38 * s, y + h - 42 * s);
+  g.fillText('ESPACIO FRENO · G TREN · F FLAPS · C CÁMARA · V ASISTENCIA · T CLIMA', x + 38 * s, y + h - 26 * s);
 }
 
 function drawPause(g, W, H, s) {
-  g.fillStyle = 'rgba(8,12,14,0.55)';
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = 'rgba(8,12,14,0.62)';
   g.fillRect(0, 0, W, H);
-  g.textAlign = 'center';
+  const w = Math.min(560 * s, W - 80 * s);
+  const h = 250 * s;
+  const x = (W - w) / 2;
+  const y = (H - h) / 2;
+  roundRect(g, x, y, w, h, 12);
+  g.fillStyle = 'rgba(12,18,22,0.9)';
+  g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.14)';
+  g.stroke();
+  g.textAlign = 'left';
+  g.fillStyle = PALETTE.amber;
+  g.font = `700 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('PAUSA', x + 26 * s, y + 34 * s);
   g.fillStyle = PALETTE.cream;
-  g.font = `700 ${46 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('PAUSED', W / 2, H * 0.44);
-  g.fillStyle = 'rgba(255,241,210,0.6)';
-  g.font = `500 ${13 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('P RESUME     R RESTART     ENTER QUIT TO MENU', W / 2, H * 0.44 + 40 * s);
+  g.font = `700 ${26 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText(mission ? mission.name : 'Free Flight', x + 26 * s, y + 66 * s);
+  g.fillStyle = 'rgba(255,241,210,0.7)';
+  g.font = `500 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
+  if (mission) {
+    wrap(g, mission.def.objective, x + 26 * s, y + 92 * s, w - 52 * s, 18 * s);
+    g.fillStyle = 'rgba(255,241,210,0.5)';
+    g.font = `600 ${11 * s}px "SF Mono", Consolas, monospace`;
+    const left = mission.timeLimit !== null ? formatTime(Math.max(0, mission.timeLeft)) : 'NO CLOCK';
+    g.fillText(`TIEMPO ${left}   ANILLOS ${mission.gateIndex}/${mission.gates.length}   AVERÍAS ${Math.round(flight.state.damage)}%   COMB. ${Math.round(flight.state.fuel)}%`, x + 26 * s, y + 140 * s);
+  }
+  g.fillStyle = 'rgba(255,241,210,0.72)';
+  g.font = `500 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('P  SEGUIR        R  REINICIAR        ENTER  SALIR AL MENÚ', x + 26 * s, y + h - 30 * s);
 }
 
 function drawResult(g, W, H, s) {
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
   const ok = mission?.complete;
-  g.fillStyle = 'rgba(8,12,14,0.42)';
+  g.fillStyle = 'rgba(8,12,14,0.24)';
   g.fillRect(0, 0, W, H);
   g.textAlign = 'center';
   g.fillStyle = ok ? PALETTE.teal : PALETTE.warning;
   g.font = `700 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText(ok ? 'SORTIE COMPLETE' : 'SORTIE FAILED', W / 2, H * 0.36);
+  g.fillText(ok ? 'MISIÓN CUMPLIDA' : 'MISIÓN FALLIDA', W / 2, H * 0.36);
   g.fillStyle = PALETTE.cream;
   g.font = `700 ${44 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText(ok ? 'Home before dark.' : (mission?.failReason ?? 'The coast wins.'), W / 2, H * 0.36 + 56 * s);
+  g.fillText(ok ? 'En casa antes de anochecer.' : (mission?.failReason ?? 'La costa gana.'), W / 2, H * 0.36 + 56 * s);
   g.fillStyle = 'rgba(255,241,210,0.75)';
   g.font = `600 ${14 * s}px "SF Mono", Consolas, monospace`;
   const score = mission ? mission.score : 0;
-  g.fillText(`SCORE ${score}     RINGS ${mission ? mission.gateIndex : 0}/${mission ? mission.gates.length : 0}`, W / 2, H * 0.36 + 102 * s);
+  g.fillText(`PUNTOS ${score}     ANILLOS ${mission ? mission.gateIndex : 0}/${mission ? mission.gates.length : 0}`, W / 2, H * 0.36 + 102 * s);
+  const f = flight.state;
+  if (ok && f.touchdownAt !== null) {
+    g.fillStyle = 'rgba(255,241,210,0.6)';
+    g.font = `600 ${12 * s}px "SF Mono", Consolas, monospace`;
+    g.fillText(`TOMA ${Math.round((f.touchdownRate ?? 0) * 196.85)} FPM · ${f.landingGrade ?? '—'} · AVERÍAS ${Math.round(f.damage)}% · COMB. ${Math.round(f.fuel)}%`, W / 2, H * 0.36 + 126 * s);
+  }
   g.fillStyle = PALETTE.amber;
   g.font = `700 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('ENTER  MENU       R  FLY AGAIN', W / 2, H * 0.36 + 150 * s);
+  g.fillText('ENTER  MENÚ       R  VOLVER A VOLAR', W / 2, H * 0.36 + 150 * s);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1087,7 +1225,7 @@ function stageShot(name) {
   beginMission(setup.mission);
   screen = SCREENS.FLY;
   mission.gateIndex = setup.gate;
-  mission.objective = name === 'landing' ? 'Land at Cinder Coast on 36' : mission.def.objective;
+  mission.objective = name === 'landing' ? 'Aterriza en Cinder Coast, pista 36' : mission.def.objective;
   const [x, y0, z] = setup.position;
   const y = name === 'canyon' ? sampleHeight(x, z) + 135 : y0;
   flight.state.position.set(x, y, z);
@@ -1113,8 +1251,8 @@ function stageShot(name) {
   rig.setMode(setup.camera);
   mission.timeLeft = mission.timeLimit - 63;
   mission.elapsed = 63;
-  say(mission, 'TOWER', setup.gear ? 'Runway 36, cleared to land.' : 'Cleared down the coast. Keep her steady.');
-  mission.radio = { speaker: 'TOWER', text: setup.gear ? 'Runway 36, cleared to land.' : 'Cleared down the coast. Keep her steady.', age: 0.2 };
+  say(mission, 'TORRE', setup.gear ? 'Pista 36, autorizado a aterrizar.' : 'Autorizado costa abajo. Mantenla firme.');
+  mission.radio = { speaker: 'TORRE', text: setup.gear ? 'Pista 36, autorizado a aterrizar.' : 'Autorizado costa abajo. Mantenla firme.', age: 0.2 };
   scene.userData.shot = true;
   return true;
 }

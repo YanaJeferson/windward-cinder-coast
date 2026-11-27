@@ -29,9 +29,9 @@ repository. The game runs in desktop Chrome (or any current desktop browser) at 
 
 | Input | Action |
 | --- | --- |
-| `W` / `↑` or `S` / `↓` | pitch: W/↑ pushes the nose down, S/↓ pulls it up |
+| `W` / `↑` or `S` / `↓` | pitch: W/↑ raises the nose (climb), S/↓ lowers it |
 | `A` / `←` or `D` / `→` | roll |
-| `I` `J` `K` `L` | alternate pitch/roll keys (I = nose down, K = nose up) |
+| `I` `J` `K` `L` | alternate pitch/roll keys (I = nose up, K = nose down) |
 | `Q` / `E` | rudder |
 | `Shift` / `Ctrl` or mouse wheel | throttle |
 | Mouse (click to capture) | fly the aircraft |
@@ -47,23 +47,27 @@ repository. The game runs in desktop Chrome (or any current desktop browser) at 
 | `T` or `[` / `]` | cycle weather (auto, sunny, windy, rain, storm, fog, snow, night) |
 | `M` | mute |
 
-## Seven ways to fly
+## Nueve formas de volar
 
-1. **Free Flight** — no clock, no gates; learn the coast and land back on 36.
-2. **First Solo** — a checkout flight: take off from 36, fly the circuit, full-stop landing.
-3. **El Valle Perdido** — a sunset sortie through the caldera lake valley, its village and the ring course.
-4. **Dawn Ferry** — thread five coastal rings and land on runway 36.
-5. **Cinder Run** — a timed low-level run through six gates in the Cinder canyon.
-6. **The Long Way Home** — find the flare off the stacks on a tank that is nearly dry, then land.
-7. **Ring Sprint** — eight rings around the whole island, flat out, no landing.
-8. **Storm Front** — a crosswind landing in rain with a gusting front over the strip.
-9. **Deadstick** — the engine quits over the strait; glide four kilometres to 36 and land.
+1. **Vuelo Libre** — sin reloj ni anillos; aprende la costa y vuelve a la 36.
+2. **Primer Solo** — vuelo de comprobación: despega de la 36, vuela el circuito y aterriza completo.
+3. **El Valle Perdido** — salida al atardecer por el lago de la caldera, su pueblo y el circuito de anillos.
+4. **Ferry del Alba** — cruza cinco anillos costeros y aterriza en la 36.
+5. **Pasada del Cinder** — pasada cronometrada por seis puertas del cañón.
+6. **El Camino a Casa** — encuentra la bengala junto a las chimeneas con el depósito casi seco y vuelve.
+7. **Sprint de Anillos** — ocho anillos alrededor de la isla, a fondo, sin aterrizar.
+8. **Frente de Tormenta** — aterrizaje con viento cruzado y lluvia.
+9. **Sin Motor** — el motor se para sobre el estrecho; planea cuatro kilómetros hasta la 36.
 
 `C` cycles the chase, cockpit and wing cameras. `V` switches between the forgiving assisted
 envelope and the heavier Pro envelope.
 
-The flight model keeps energy honest: throttle and climb trade speed, bank bends the flight
-path, the wing stalls below 30 m/s, fuel burns, and a hard arrival ends the sortie.
+The flight model keeps energy honest: throttle and climb trade speed, a coordinated bank bends the
+flight path toward the low wing (`g·tan(bank)/v`), the wing stalls below 30 m/s and drops a wing,
+fuel burns, and the approach settles when the flare is flown. Landings are judged on sink rate,
+runway alignment and centreline: smooth, firm or hard, with damage above 5.5 m/s; a flat, slow
+arrival in a field is survivable but fails a runway landing. The airstrip plateau is dead flat
+from threshold to threshold, so neither end of the runway hides in the slope.
 
 **Systems.** The engine starts and stops with `X` (with a short starter crank); with it off the
 Petrel glides, the propeller windmills and the HUD calls the glide speed. `Space` is wheel brake,

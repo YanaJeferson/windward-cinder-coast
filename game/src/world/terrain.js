@@ -104,9 +104,11 @@ export function sampleHeight(x, z) {
   const shelf = 1 - smoothstep(0.58, 1.3, shelfD);
   h = lerp(h, ELEV, shelf * 0.94);
 
-  // The apron and threshold stay dead flat for wheels and cameras.
-  const pad = Math.exp(-(((x / 330) ** 2 + (z / 640) ** 2)) * 2.6);
-  h = lerp(h, ELEV, smoothstep(0.1, 0.75, pad));
+  // The runway and its threshold stay dead flat for wheels, landings and cameras: a rectangular
+  // plateau rather than a soft bump, so neither end of the strip is buried in the slope.
+  const padW = 1 - smoothstep(300, 470, Math.abs(x));
+  const padL = 1 - smoothstep(480, 660, Math.abs(z));
+  h = lerp(h, ELEV, padW * padL);
 
   // Small undulations in the open field, kept away from the paved surfaces.
   const flat = 1 - smoothstep(260, 680, Math.max(Math.abs(x), Math.abs(z) * 0.72));

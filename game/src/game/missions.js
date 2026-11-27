@@ -14,26 +14,26 @@ export function createMissions() {
   return [
     {
       id: 'free-flight',
-      name: 'Free Flight',
+      name: 'Vuelo Libre',
       kind: 'free',
-      objective: 'Take off, explore, land back on 36.',
-      brief: 'No clock, no gates, no cargo. Start on runway 36 with the engine running, take the Petrel up and learn the coast: the canyon, the volcano, the stacks and the strip. Come back and put her down on 36 when you have had enough. Hold Shift for full power and pull S/↓ to rotate.',
+      objective: 'Despega, explora y vuelve a la 36',
+      brief: 'Sin reloj, sin anillos, sin carga. Sal de la 36 con el motor en marcha, sube el Petrel y aprende la costa: el cañón, el volcán, las chimeneas y la pista. Vuelve y déjalo en la 36 cuando hayas tenido bastante. Mantén Mayús para potencia y tira de S/↓ para rotar.',
       start: { x: 0, y: WORLD.runway.elevation + 1.55, z: 420, heading: 0, speed: 0, fuel: 100, ground: true, gear: true, throttle: 1 },
       timeLimit: null,
       landing: true,
       weather: 'clear',
       gates: [],
       radio: {
-        start: ['TOWER', 'Cinder Coast clear. The coast is yours.'],
-        land: ['TOWER', 'Nice to have you back on the ground.'],
+        start: ['TORRE', 'Cinder Coast despejado. La costa es tuya.'],
+        land: ['TORRE', 'Bienvenido de vuelta al suelo.'],
       },
     },
     {
       id: 'first-solo',
-      name: 'First Solo',
+      name: 'Primer Solo',
       kind: 'training',
-      objective: 'Take off, fly the circuit, land on 36',
-      brief: 'A checkout flight with the chief pilot watching from the shed. Engine off, parking brake set: press X to start, B to release the brake, then take off from 36, fly the three circuit rings and bring her back for a full-stop landing.',
+      objective: 'Despega, vuela el circuito y aterriza en la 36',
+      brief: 'Vuelo de comprobación con el jefe de pilotos mirando desde el hangar. Motor parado y freno puesto: pulsa X para arrancar, B para soltar el freno, despega de la 36, vuela los tres anillos del circuito y vuelve para un aterrizaje completo.',
       start: { x: 0, y: WORLD.runway.elevation + 1.55, z: 420, heading: 0, speed: 0, fuel: 70, ground: true, gear: true, throttle: 1, engineOff: true, parking: true },
       timeLimit: 420,
       landing: true,
@@ -44,13 +44,13 @@ export function createMissions() {
         at(300, 185, 160, 250, 27),
       ],
       radio: {
-        start: ['CHIEF', 'You have the aeroplane. Full throttle, keep her straight, and fly the numbers.'],
+        start: ['JEFE', 'El avión es tuyo. A tope, mantenla recta y vuela los números.'],
         gate: [
-          ['CHIEF', 'Good. Climb away and turn crosswind.'],
-          ['CHIEF', 'Two. Keep the turn coordinated.'],
-          ['CHIEF', 'Last ring. Talk me through the landing.'],
+          ['JEFE', 'Bien. Sube y gira a través.'],
+          ['JEFE', 'Dos. Coordina el viraje.'],
+          ['JEFE', 'Último anillo. Cuéntame el aterrizaje.'],
         ],
-        land: ['CHIEF', 'That is a checkout. Sign here.'],
+        land: ['JEFE', 'Eso es un chequeo. Firma aquí.'],
       },
     },
     {
@@ -86,10 +86,10 @@ export function createMissions() {
     },
     {
       id: 'dawn-ferry',
-      name: 'Dawn Ferry',
+      name: 'Ferry del Alba',
       kind: 'mission',
-      objective: 'Thread the coast rings, then land on 36',
-      brief: 'The mail has to reach Port Meridian before the wind turns. Follow the headlands, keep the rings on your wing and put the Petrel back on the strip.',
+      objective: 'Pasa los anillos de la costa y aterriza en la 36',
+      brief: 'El correo tiene que llegar a Port Meridian antes de que cambie el viento. Sigue los cabos, lleva los anillos en el ala y devuelve el Petrel a la pista.',
       start: { x: 0, y: 238, z: 2050, heading: 0, speed: 60, fuel: 100 },
       timeLimit: 300,
       landing: true,
@@ -102,23 +102,23 @@ export function createMissions() {
         at(250, 225, -520, 246, 25),
       ],
       radio: {
-        start: ['TOWER', 'Wind light from the west. Runway 36 is clear — bring her home.'],
+        start: ['TORRE', 'Viento flojo del oeste. Pista 36 despejada, tráela a casa.'],
         gate: [
-          ['TOWER', 'First ring. You are cleared down the coast.'],
-          ['MAIL OFFICE', 'That is half the post still dry. Keep it that way.'],
-          ['TOWER', 'Cliffs on your right. Watch the downdraught.'],
-          ['TOWER', 'Nice line. Turn back toward the strip.'],
-          ['TOWER', 'Last ring. Report final.'],
+          ['TORRE', 'Primer anillo. Autorizado costa abajo.'],
+          ['CORREO', 'Media saca sigue seca. Que siga así.'],
+          ['TORRE', 'Acantilados a la derecha. Cuidado con la corriente.'],
+          ['TORRE', 'Buena línea. Vuelve hacia la pista.'],
+          ['TORRE', 'Último anillo. Informa final.'],
         ],
-        land: ['TOWER', 'Welcome home, Petrel. Mail is safe.'],
+        land: ['TORRE', 'Bienvenido a casa, Petrel. El correo está a salvo.'],
       },
     },
     {
       id: 'cinder-run',
-      name: 'Cinder Run',
+      name: 'Pasada del Cinder',
       kind: 'race',
-      objective: 'Run the canyon gates below the rim',
-      brief: 'The river cut a corridor through the Cinder range and the survey team left their markers in it. Fly the line, stay under the rim, and do not touch the rock.',
+      objective: 'Cruza las puertas del cañón bajo la cresta',
+      brief: 'El río abrió un corredor en la sierra del Cinder y el equipo topográfico dejó sus marcas. Vuela la línea, no pases de la cresta y no toques la roca.',
       start: { x: canyonX(1750), y: 260, z: 1750, heading: 0, speed: 66, fuel: 88 },
       timeLimit: 190,
       landing: false,
@@ -128,24 +128,24 @@ export function createMissions() {
         return at(x, sampleHeight(x, z) + 54 + (i === 2 ? 10 : 0), z, 0, 19);
       }),
       radio: {
-        start: ['SURVEY', 'Markers are live. The river bends left at the old bridge — follow it.'],
+        start: ['TOPO', 'Marcas activas. El río gira a la izquierda en el puente viejo: síguelo.'],
         gate: [
-          ['SURVEY', 'One. Clean.'],
-          ['SURVEY', 'Two. You are low, but the line is good.'],
-          ['SURVEY', 'Three. Watch the ridge after this one.'],
-          ['SURVEY', 'Four. Halfway through the cut.'],
-          ['SURVEY', 'Five. The canyon opens ahead.'],
-          ['SURVEY', 'Last marker. Climb out and bring the film home.'],
+          ['TOPO', 'Uno. Limpio.'],
+          ['TOPO', 'Dos. Vas bajo, pero la línea es buena.'],
+          ['TOPO', 'Tres. Cuidado con la cresta después de este.'],
+          ['TOPO', 'Cuatro. Mitad del corte.'],
+          ['TOPO', 'Cinco. El cañón se abre delante.'],
+          ['TOPO', 'Última marca. Sube y trae el material a casa.'],
         ],
-        land: ['SURVEY', 'That is the whole line. Beautiful flying.'],
+        land: ['TOPO', 'Esa es toda la línea. Bonito vuelo.'],
       },
     },
     {
       id: 'long-way-home',
-      name: 'The Long Way Home',
+      name: 'El Camino a Casa',
       kind: 'mission',
-      objective: 'Reach the flare, then land with what is left',
-      brief: 'A fishing boat went quiet off the stacks. Find the flare, mark the position and get back to the strip. You have a little fuel and a falling sun.',
+      objective: 'Llega a la bengala y aterriza con lo que queda',
+      brief: 'Un pesquero se quedó en silencio junto a las chimeneas. Encuentra la bengala, marca la posición y vuelve a la pista. Queda poco combustible y el sol baja.',
       start: { x: 3150, y: 300, z: 2400, heading: 322, speed: 58, fuel: 42 },
       timeLimit: 260,
       landing: true,
@@ -158,22 +158,22 @@ export function createMissions() {
       ],
       beacon: { x: 2580, z: 1130 },
       radio: {
-        start: ['COAST GUARD', 'Petrel, we have one flare on the water east of the stacks. Find it before the light goes.'],
+        start: ['SALVAMENTO', 'Petrel, hay una bengala al este de las chimeneas. Encuéntrala antes de que se vaya la luz.'],
         gate: [
-          ['COAST GUARD', 'Over the first stack. Keep her steady.'],
-          ['COAST GUARD', 'You should see the flare off your nose.'],
-          ['COAST GUARD', 'Good. Mark it and turn for home — fuel is tight.'],
-          ['COAST GUARD', 'Strip is clear. Straight in.'],
+          ['SALVAMENTO', 'Sobre la primera chimenea. Mantenla firme.'],
+          ['SALVAMENTO', 'Deberías ver la bengala de proa.'],
+          ['SALVAMENTO', 'Bien. Márcala y vuelve a casa: queda poco.'],
+          ['SALVAMENTO', 'Pista despejada. Directo.'],
         ],
-        land: ['COAST GUARD', 'They picked up the crew. Good work, Petrel.'],
+        land: ['SALVAMENTO', 'Recogieron a la tripulación. Buen trabajo, Petrel.'],
       },
     },
     {
       id: 'ring-sprint',
-      name: 'Ring Sprint',
+      name: 'Sprint de Anillos',
       kind: 'race',
-      objective: 'Eight rings, one pass, no landing',
-      brief: 'A clean line around the whole island: headlands, stacks, the old volcano and the canyon mouth. Eight rings, flat out, no cargo and no landing. The clock is the only passenger.',
+      objective: 'Ocho anillos, una pasada, sin aterrizar',
+      brief: 'Una línea limpia alrededor de la isla: cabos, chimeneas, el viejo volcán y la boca del cañón. Ocho anillos, a fondo, sin carga y sin aterrizar. El reloj es el único pasajero.',
       start: { x: 620, y: 210, z: 1750, heading: 318, speed: 72, fuel: 95 },
       timeLimit: 210,
       landing: false,
@@ -189,26 +189,26 @@ export function createMissions() {
         at(60, 150, 1180, 160, 27),
       ],
       radio: {
-        start: ['RACE CONTROL', 'Eight gates around the island. Clock starts now. Fly it clean.'],
+        start: ['CONTROL', 'Ocho puertas alrededor de la isla. El reloj corre. Vuela limpio.'],
         gate: [
-          ['RACE CONTROL', 'One.'],
-          ['RACE CONTROL', 'Two. Carry the speed through the turn.'],
-          ['RACE CONTROL', 'Three.'],
-          ['RACE CONTROL', 'Four. Watch the ridge line.'],
-          ['RACE CONTROL', 'Five. Halfway.'],
-          ['RACE CONTROL', 'Six.'],
-          ['RACE CONTROL', 'Seven. Last one over the water.'],
-          ['RACE CONTROL', 'That is the line. Beautiful.'],
+          ['CONTROL', 'Uno.'],
+          ['CONTROL', 'Dos. Mantén la velocidad en el viraje.'],
+          ['CONTROL', 'Tres.'],
+          ['CONTROL', 'Cuatro. Ojo con la cresta.'],
+          ['CONTROL', 'Cinco. Mitad.'],
+          ['CONTROL', 'Seis.'],
+          ['CONTROL', 'Siete. El último sobre el agua.'],
+          ['CONTROL', 'Esa es la línea. Bonito.'],
         ],
-        land: ['RACE CONTROL', 'That is the line. Beautiful.'],
+        land: ['CONTROL', 'Esa es la línea. Bonito.'],
       },
     },
     {
       id: 'storm-front',
-      name: 'Storm Front',
+      name: 'Frente de Tormenta',
       kind: 'challenge',
-      objective: 'Land on 36 in the crosswind',
-      brief: 'A front came in faster than the forecast. The strip is open but the wind is across it and the rain is thick. Fly the approach, keep the nose into the wind and put it down on 36.',
+      objective: 'Aterriza en la 36 con viento cruzado',
+      brief: 'Un frente entró más rápido de lo previsto. La pista está abierta pero el viento cruza y la lluvia es densa. Vuela la aproximación, mete el morro al viento y déjala en la 36.',
       start: { x: 0, y: 300, z: 3000, heading: 0, speed: 62, fuel: 55 },
       timeLimit: 240,
       landing: true,
@@ -216,24 +216,24 @@ export function createMissions() {
       wind: { from: 250, speed: 9, gust: 4 },
       gates: [],
       radio: {
-        start: ['TOWER', 'Wind two five zero, one eight gusting two six. Runway 36, cleared to land.'],
-        land: ['TOWER', 'On the ground. Get out of the rain.'],
+        start: ['TORRE', 'Viento dos cinco cero, uno ocho con rachas dos seis. Pista 36, autorizado a aterrizar.'],
+        land: ['TORRE', 'En el suelo. Sal de la lluvia.'],
       },
     },
     {
       id: 'deadstick',
-      name: 'Deadstick',
+      name: 'Sin Motor',
       kind: 'challenge',
-      objective: 'Glide to 36 and land with no engine',
-      brief: 'The engine quit over the strait with the strip still four kilometres out. There is no fuel and no restart. Fly the glide, keep 75 knots, and put the Petrel on 36 without bending it.',
+      objective: 'Planea hasta la 36 y aterriza sin motor',
+      brief: 'El motor se paró sobre el estrecho con la pista a cuatro kilómetros. No hay combustible ni arranque. Vuela el planeo, mantén 75 nudos y deja el Petrel en la 36 sin doblarlo.',
       start: { x: 0, y: 900, z: 4000, heading: 0, speed: 56, fuel: 0, engineOff: true },
       timeLimit: null,
       landing: true,
       weather: 'clear',
       gates: [],
       radio: {
-        start: ['TOWER', 'Petrel, we have you gliding. Runway 36 is clear. Best glide, seventy-five knots.'],
-        land: ['TOWER', 'Deadstick on the numbers. That is a landing.'],
+        start: ['TORRE', 'Petrel, te vemos planeando. Pista 36 despejada. Mejor planeo, setenta y cinco nudos.'],
+        land: ['TORRE', 'Sin motor y en los números. Eso es un aterrizaje.'],
       },
     },
   ];
@@ -298,11 +298,11 @@ export function updateMission(state, flight, dt) {
 
   if (state.timeLimit !== null && state.timeLeft <= 0) {
     state.failed = true;
-    state.failReason = 'Out of time';
+    state.failReason = 'Se acabó el tiempo';
     return;
   }
   if (flight.fuel <= 0 && !flight.onGround) {
-    say(state, 'PETREL', 'Fuel is dry — gliding for the strip.');
+    say(state, 'PETREL', 'Sin combustible. Planeando a la pista.');
   }
 
   if (!flight.onGround) state.airborne = true;
@@ -318,11 +318,11 @@ export function updateMission(state, flight, dt) {
       if (state.gateIndex >= state.gates.length) {
         if (!state.def.landing) {
           state.complete = true;
-          state.objective = 'Course complete';
+          state.objective = 'Circuito completo';
           nextLine(state, 'land', 0);
         } else {
-          state.objective = 'Land at Cinder Coast on 36';
-          say(state, 'TOWER', 'Course clear. Runway 36, land at your discretion.');
+          state.objective = 'Aterriza en Cinder Coast, pista 36';
+          say(state, 'TORRE', 'Circuito despejado. Pista 36, aterriza cuando quieras.');
         }
       }
     }
@@ -332,15 +332,18 @@ export function updateMission(state, flight, dt) {
     if (flight.onGround && onRunway && flight.speed < 3.2) {
       state.complete = true;
       state.landed = true;
-      state.objective = 'Landed';
+      state.objective = 'Aterrizado';
       state.score += 500 + Math.round(state.timeLeft ?? state.elapsed * 2);
       nextLine(state, 'land', 0);
+    } else if (flight.onGround && !onRunway && flight.speed < 2) {
+      state.failed = true;
+      state.failReason = 'Aterrizaste fuera de la pista';
     }
   }
 
   if (flight.crashed) {
     state.failed = true;
-    state.failReason = 'Airframe lost';
+    state.failReason = 'Avión perdido';
   }
 }
 
