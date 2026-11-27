@@ -341,6 +341,19 @@ export function createHud(canvas) {
       return;
     }
 
+    // Scrims top and bottom so the instruments stay readable against a bright sky or sun.
+    const topScrim = g.createLinearGradient(0, 0, 0, 148 * s);
+    topScrim.addColorStop(0, 'rgba(4,8,11,0.5)');
+    topScrim.addColorStop(0.62, 'rgba(4,8,11,0.16)');
+    topScrim.addColorStop(1, 'rgba(4,8,11,0)');
+    g.fillStyle = topScrim;
+    g.fillRect(0, 0, W, 148 * s);
+    const bottomScrim = g.createLinearGradient(0, H - 96 * s, 0, H);
+    bottomScrim.addColorStop(0, 'rgba(4,8,11,0)');
+    bottomScrim.addColorStop(1, 'rgba(4,8,11,0.34)');
+    g.fillStyle = bottomScrim;
+    g.fillRect(0, H - 96 * s, W, 96 * s);
+
     // Top-left wordmark and mission.
     g.textAlign = 'left';
     g.fillStyle = 'rgba(255,241,210,0.86)';

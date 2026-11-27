@@ -54,7 +54,7 @@ export function sampleHeight(x, z) {
   const lx = (x - LAKE.x) / LAKE.rx;
   const lz = (z - LAKE.z) / LAKE.rz;
   const lakeDist = Math.sqrt(lx * lx + lz * lz);
-  const bowl = 1 - smoothstep(0.86, 1.16, lakeDist);
+  const bowl = 1 - smoothstep(1.0, 1.2, lakeDist);
   if (bowl > 0.001) h = lerp(h, 286, bowl * 0.985);
   // The caldera rim: a ring of sharp volcanic peaks beyond the bowl, with enough irregularity
   // that the skyline is a silhouette rather than a smooth dome.
@@ -224,8 +224,8 @@ export function createTerrain() {
       colors[v * 3] = c.r;
       colors[v * 3 + 1] = c.g;
       colors[v * 3 + 2] = c.b;
-      uvs[v * 2] = x / 16;
-      uvs[v * 2 + 1] = z / 16;
+      uvs[v * 2] = x / 11;
+      uvs[v * 2 + 1] = z / 11;
       v += 1;
     }
   }
@@ -285,7 +285,7 @@ export function createTerrain() {
       `
         vec3 gcol = texture2D(uGrass, vMapUv * 0.62).rgb;
         float gLum = dot(gcol, vec3(0.299, 0.587, 0.114));
-        gcol = mix(vec3(gLum), gcol, 0.72) * vec3(1.06, 1.0, 0.86);
+        gcol = mix(vec3(gLum), gcol, 0.55) * vec3(1.04, 0.99, 0.8) * 0.94;
         vec3 rcol = texture2D(uRock, vMapUv * 1.25).rgb * vec3(0.62, 0.66, 0.74);
         float macro = texture2D(uMacro, vMapUv * 0.055).r;
         float rockMix = max(smoothstep(0.22, 0.48, vSlope), smoothstep(170.0, 520.0, vHeight) * 0.85);

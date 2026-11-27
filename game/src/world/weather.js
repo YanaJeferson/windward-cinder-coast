@@ -19,9 +19,9 @@ const PRESETS = {
     wind: { from: 250, speed: 3, gust: 1.2 },
   },
   sunset: {
-    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 8.5, envKind: 'sunset',
+    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 11.5, envKind: 'sunset',
     fog: '#d89d7c', fogNear: 1700, fogFar: 15500,
-    sunColor: '#ffb178', sunIntensity: 2.6, hemiSky: '#ffc9a0', hemiGround: '#5c3d33', hemiIntensity: 0.95,
+    sunColor: '#ffbb85', sunIntensity: 2.5, hemiSky: '#ffd0ab', hemiGround: '#5c3d33', hemiIntensity: 1.25,
     seaDeep: '#1d5162', seaShallow: '#69b4ad', seaSky: '#ffc08a', seaFog: '#d59a76', seaFogNear: 700, seaFogFar: 13000,
     rain: false, snow: false, snowGround: 0, lightning: false, env: 0.05, landingLight: false,
     wind: { from: 250, speed: 4, gust: 1.5 },
@@ -281,6 +281,15 @@ export function createWeather({ scene, sky, sea }) {
       g.fillStyle = grad;
       g.fillRect(x - r, y - r, r * 2, r * 2);
     }
+    // Feather the canvas edges so a sprite never shows its square boundary.
+    g.globalCompositeOperation = 'destination-in';
+    const mask = g.createRadialGradient(128, 64, 20, 128, 64, 120);
+    mask.addColorStop(0, 'rgba(0,0,0,1)');
+    mask.addColorStop(0.72, 'rgba(0,0,0,0.85)');
+    mask.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = mask;
+    g.fillRect(0, 0, 256, 128);
+    g.globalCompositeOperation = 'source-over';
     return new THREE.CanvasTexture(c);
   }
   const cloudTextures = [cloudTexture(881), cloudTexture(1723), cloudTexture(3301)];
@@ -293,10 +302,10 @@ export function createWeather({ scene, sky, sea }) {
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: cloudTextures[i % 3], color: i % 4 === 0 ? '#ffcdb2' : '#f6bda4',
       transparent: true, depthWrite: false, fog: false,
-      opacity: 0.62 + randomCloud() * 0.28,
+      opacity: 0.4 + randomCloud() * 0.26,
     }));
-    sprite.position.set(-2500 + Math.sin(a) * r, 560 + randomCloud() * 1500, 700 + Math.cos(a) * r);
-    sprite.scale.set(3600 + randomCloud() * 4200, 800 + randomCloud() * 900, 1);
+    sprite.position.set(-2500 + Math.sin(a) * r, 900 + randomCloud() * 1700, 700 + Math.cos(a) * r);
+    sprite.scale.set(3200 + randomCloud() * 3800, 700 + randomCloud() * 700, 1);
     sprite.renderOrder = 2;
     cloudGroup.add(sprite);
   }

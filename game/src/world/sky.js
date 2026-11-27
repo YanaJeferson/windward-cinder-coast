@@ -34,6 +34,15 @@ function cloudTexture(seed) {
     g.ellipse(x, y, r * 1.5, r * 0.52, 0, 0, Math.PI * 2);
     g.fill();
   }
+  // Feather the canvas edges so the billboard never shows its square boundary.
+  g.globalCompositeOperation = 'destination-in';
+  const mask = g.createRadialGradient(256, 128, 30, 256, 128, 244);
+  mask.addColorStop(0, 'rgba(0,0,0,1)');
+  mask.addColorStop(0.7, 'rgba(0,0,0,0.9)');
+  mask.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = mask;
+  g.fillRect(0, 0, 512, 256);
+  g.globalCompositeOperation = 'source-over';
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;

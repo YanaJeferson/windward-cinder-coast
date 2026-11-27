@@ -44,7 +44,7 @@ export function createCameraRig(camera) {
       desired.copy(flight.position).add(local);
       camera.position.copy(desired);
       const target = flight.position.clone().addScaledVector(fwd, 26);
-      target.y -= 0.7;
+      target.y -= 0.55;
       camera.up.copy(up);
       camera.lookAt(target);
       camera.fov = damp(camera.fov, 68, 5, dt);

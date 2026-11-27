@@ -245,7 +245,7 @@ const stick = { roll: 0, pitch: 0, yaw: 0 };
 let time = 0;
 
 const titleFlight = {
-  position: new THREE.Vector3(-1810, 508, 1520),
+  position: new THREE.Vector3(-1980, 545, 1860),
   quaternion: new THREE.Quaternion(),
   speed: 60,
   throttle: 0.55,
@@ -259,10 +259,10 @@ const titleFlight = {
   overspeed: false,
   vertical: 0,
   bank: 0,
-  heading: 304,
+  heading: 328,
   gLoad: 1,
 };
-setHeading(titleFlight, 304);
+setHeading(titleFlight, 328);
 titleFlight.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -0.08));
 
 function announce(text) {
@@ -471,8 +471,8 @@ function updateTitle(dt) {
   plane.userData.propDisc.rotation.z += dt * 3;
   const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(titleFlight.quaternion);
   titleFlight.position.addScaledVector(fwd, dt * 20);
-  if (titleFlight.position.distanceTo(new THREE.Vector3(-2500, 508, 700)) > 1400) {
-    titleFlight.position.set(-1810, 508, 1520);
+  if (titleFlight.position.distanceTo(new THREE.Vector3(-2500, 545, 700)) > 1500) {
+    titleFlight.position.set(-1980, 545, 1860);
   }
   rig.update(titleFlight, dt, time);
   weather.update(dt, camera, titleFlight);
@@ -1077,9 +1077,9 @@ const shot = params.get('shot');
 function stageShot(name) {
   const setups = {
     cover: { mission: 2, position: [-1810, 505, 1520], heading: 304, speed: 60, roll: -0.1, pitch: 0.02, camera: 'hero', gate: 0 },
-    cockpit: { mission: 2, position: [10, 190, 1700], heading: 0, speed: 57, roll: 0.0, pitch: 0.03, camera: 'cockpit', gate: 0 },
+    cockpit: { mission: 2, position: [-1900, 512, 1620], heading: 304, speed: 57, roll: 0.0, pitch: 0.02, camera: 'cockpit', gate: 0 },
     canyon: { mission: 4, position: [canyonPoint(-1000), 0, -1000], heading: 358, speed: 72, roll: -0.05, pitch: 0.01, camera: 'chase', gate: 4 },
-    landing: { mission: 3, position: [-8, 54, 610], heading: 0, speed: 46, roll: 0.0, pitch: -0.04, camera: 'hero', gate: 5 },
+    landing: { mission: 3, position: [-8, 66, 700], heading: 0, speed: 42, roll: 0.0, pitch: -0.05, camera: 'chase', gate: 4, gear: true, flaps: 2 },
     storm: { mission: 7, position: [0, 210, 2300], heading: 0, speed: 60, roll: -0.04, pitch: 0.02, camera: 'hero', gate: 0 },
   };
   const setup = setups[name];

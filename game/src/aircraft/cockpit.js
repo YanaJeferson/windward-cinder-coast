@@ -49,15 +49,17 @@ export function createCockpit() {
 
   // Panel on a tilted mount, with a padded coaming.
   const panelGroup = new THREE.Group();
-  panelGroup.position.set(0, 0.66, -1.5);
+  panelGroup.position.set(0, 0.5, -1.58);
   panelGroup.rotation.x = -0.4;
   group.add(panelGroup);
 
   const panel = new THREE.Mesh(new THREE.BoxGeometry(0.94, 0.46, 0.06), panelMat);
   panelGroup.add(panel);
-  const coaming = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.07, 0.2), shellMat);
-  coaming.position.set(0, 0.255, 0.05);
-  coaming.rotation.x = 0.12;
+  const coaming = new THREE.Mesh(
+    new THREE.BoxGeometry(0.96, 0.03, 0.12),
+    new THREE.MeshStandardMaterial({ color: '#2a2422', roughness: 0.98, metalness: 0.02 }),
+  );
+  coaming.position.set(0, 0.245, 0.02);
   panelGroup.add(coaming);
 
   // Panel floodlight: a warm wash across the dials.
@@ -127,8 +129,8 @@ export function createCockpit() {
       new THREE.PlaneGeometry(0.16, 0.075),
       new THREE.MeshBasicMaterial({ map: tex }),
     );
-    box.position.set(0.58 + i * 0.0, 0.86 - i * 0.1, -1.3);
-    screen.position.set(0.58, 0.86 - i * 0.1, -1.275);
+    box.position.set(0.56, 0.66 - i * 0.1, -1.4);
+    screen.position.set(0.56, 0.66 - i * 0.1, -1.375);
     group.add(box, screen);
   }
 
@@ -218,14 +220,11 @@ export function createCockpit() {
   group.add(tube(new THREE.Vector3(-0.78, 1.5, -0.85), new THREE.Vector3(0.78, 1.5, -0.85), 0.012, frameMat));
 
   // A narrow fascia under the panel, so the dials sit in a dashboard.
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.26, 0.08), shellMat);
-  fascia.position.set(0, 0.4, -1.55);
-  group.add(fascia);
 
   // Glareshield and low side sills: they close the cockpit around the view without blocking it.
-  const glare = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.09, 0.3), shellMat);
-  glare.position.set(0, 0.94, -1.4);
-  glare.rotation.x = -0.08;
+  const glare = new THREE.Mesh(new THREE.BoxGeometry(0.94, 0.06, 0.16), shellMat);
+  glare.position.set(0, 0.735, -1.56);
+  glare.rotation.x = -0.06;
   group.add(glare);
   const dashBase = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.36, 1.0), shellMat);
   dashBase.position.set(0, 0.27, -0.82);
