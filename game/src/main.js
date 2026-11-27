@@ -292,7 +292,7 @@ function cycleWeather(direction) {
   const i = WEATHER_CHOICES.indexOf(weatherChoice);
   weatherChoice = WEATHER_CHOICES[(i + direction + WEATHER_CHOICES.length) % WEATHER_CHOICES.length];
   applyWeather();
-  announce(`Weather ${WEATHER_LABELS[weatherChoice]}.`);
+  announce(`Clima ${WEATHER_LABELS[weatherChoice]}.`);
 }
 
 function selectMission(index) {
@@ -345,7 +345,7 @@ function beginMission(index) {
   resultDelay = 0;
   hudCanvas.style.pointerEvents = 'none';
   say(mission, ...(def.radio?.start ?? ['TOWER', 'Cleared.']));
-  announce(`${def.name}. Press Enter to fly.`);
+  announce(`${def.name}. Pulsa Enter para volar.`);
 }
 
 function startFlying() {
@@ -361,7 +361,7 @@ function finishMission(success) {
   screen = SCREENS.RESULT;
   mission.complete = success && !mission.failed;
   mission.failed = !success || mission.failed;
-  announce(success ? `Mission complete. Score ${mission.score}.` : `Mission failed. ${mission.failReason ?? ''}`);
+  announce(success ? `Misión cumplida. Puntos ${mission.score}.` : `Misión fallida. ${mission.failReason ?? ''}`);
 }
 
 function restart() {
@@ -378,7 +378,7 @@ function toTitle() {
   effects.clear();
   hudCanvas.style.pointerEvents = 'auto';
   rig.setMode('title');
-  announce('Windward: Cinder Coast. Choose a sortie.');
+  announce('Windward: Cinder Coast. Elige una salida.');
 }
 
 function handleInput() {
@@ -1053,7 +1053,8 @@ function drawTitle(g, W, H, s) {
             : m.kind === 'training' ? 'INSTRUCCIÓN'
               : m.kind === 'challenge' ? 'DESAFÍO'
                 : 'MISIÓN';
-        g.fillText(`${kindLabel} · ${m.weather.toUpperCase()}${m.landing ? ' · ATERRIZAJE' : ''}`, cx2 + 16 * s, cy2 + 40 * s);
+        const wxLabel = m.weather === 'clear' ? 'DESPEJADO' : m.weather === 'sunset' ? 'ATARDECER' : m.weather === 'storm' ? 'TORMENTA' : m.weather.toUpperCase();
+        g.fillText(`${kindLabel} · ${wxLabel}${m.landing ? ' · ATERRIZAJE' : ''}`, cx2 + 16 * s, cy2 + 40 * s);
       });
       g.fillStyle = 'rgba(245,237,218,0.5)';
       g.font = `500 ${10 * s}px "Segoe UI", Arial, sans-serif`;
