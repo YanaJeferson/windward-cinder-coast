@@ -6,6 +6,8 @@ import { clamp, fbm, lerp, ridge, smoothstep, valueNoise } from '../util/math.js
 import { makeGroundDetailTexture } from '../util/textures.js';
 
 const ELEV = WORLD.runway.elevation;
+export const LAKE = { x: -2500, z: 700, rx: 1080, rz: 880, level: 315 };
+export const inLake = (x, z) => ((x - LAKE.x) / LAKE.rx) ** 2 + ((z - LAKE.z) / LAKE.rz) ** 2 < 1.08;
 
 function gauss(x, z, cx, cz, radius, height) {
   const dx = (x - cx) / radius;
@@ -46,6 +48,10 @@ export function sampleHeight(x, z) {
   const crater = Math.exp(-(((x + 2550) / 330) ** 2 + ((z - 720) / 300) ** 2) * 2.2);
   h -= crater * 175;
   h += Math.exp(-(((x + 2550) / 120) ** 2 + ((z - 720) / 110) ** 2) * 2.4) * 36;
+
+  // The caldera lake: a broad bowl inside the old volcano, with a water plane at 315 m.
+  const caldera = Math.exp(-(((x + 2500) / 1500) ** 2 + ((z - 700) / 1260) ** 2) * 1.7);
+  h = lerp(h, 302, smoothstep(0.18, 0.82, caldera) * 0.97);
 
   // The Cinder canyon: a river-cut trench west of the strip.
   const canyonX = -1520 + Math.sin(z / 690) * 330 + Math.sin(z / 233) * 65;

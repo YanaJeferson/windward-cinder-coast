@@ -8,7 +8,7 @@ A complete coastal flight game for the browser, entered in make.fun's
 [Make the best flight game](https://make.fun/bounty/best-flight-game-20261126-0057) bounty.
 
 Fly the Petrel, a strut-braced bush plane, over the volcanic Cinder Coast: turquoise water,
-black-sand headlands, a river-cut canyon, outer islands and a working airstrip. Eight ways to
+black-sand headlands, a river-cut canyon, outer islands and a working airstrip. Nine ways to
 fly, one airframe.
 
 ## Play
@@ -22,6 +22,8 @@ No build step and no network requests: `game/index.html` and every module it loa
 repository. The game runs in desktop Chrome (or any current desktop browser) at 1280×720.
 
 **Assets.** The sky panorama, ground, rock and asphalt textures are CC0 photographic sources credited in [CREDITS.md](./CREDITS.md); the game code, aircraft, terrain shape and HUD are original. The strip is surrounded by crop fields, hedgerows, fences, a dirt track and mixed woodland.
+
+**Title screen.** The menu is the reference's cinematic composition rebuilt with this game's own scene: a sunset over the caldera lake, the village lights, the Petrel in frame, a glass menu, pilot profile, mission card, quick controls and a live-looking speed/altitude dial. Every pixel behind it is a real render; no menu photograph is used.
 
 **Controls**
 
@@ -49,12 +51,13 @@ repository. The game runs in desktop Chrome (or any current desktop browser) at 
 
 1. **Free Flight** — no clock, no gates; learn the coast and land back on 36.
 2. **First Solo** — a checkout flight: take off from 36, fly the circuit, full-stop landing.
-3. **Dawn Ferry** — thread five coastal rings and land on runway 36.
-4. **Cinder Run** — a timed low-level run through six gates in the Cinder canyon.
-5. **The Long Way Home** — find the flare off the stacks on a tank that is nearly dry, then land.
-6. **Ring Sprint** — eight rings around the whole island, flat out, no landing.
-7. **Storm Front** — a crosswind landing in rain with a gusting front over the strip.
-8. **Deadstick** — the engine quits over the strait; glide four kilometres to 36 and land.
+3. **El Valle Perdido** — a sunset sortie through the caldera lake valley, its village and the ring course.
+4. **Dawn Ferry** — thread five coastal rings and land on runway 36.
+5. **Cinder Run** — a timed low-level run through six gates in the Cinder canyon.
+6. **The Long Way Home** — find the flare off the stacks on a tank that is nearly dry, then land.
+7. **Ring Sprint** — eight rings around the whole island, flat out, no landing.
+8. **Storm Front** — a crosswind landing in rain with a gusting front over the strip.
+9. **Deadstick** — the engine quits over the strait; glide four kilometres to 36 and land.
 
 `C` cycles the chase, cockpit and wing cameras. `V` switches between the forgiving assisted
 envelope and the heavier Pro envelope.

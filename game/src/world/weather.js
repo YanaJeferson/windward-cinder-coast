@@ -4,9 +4,9 @@ import * as THREE from '../../vendor/three.module.min.js';
 import { WORLD } from '../config.js';
 import { createRandom } from '../util/math.js';
 
-export const WEATHER_CHOICES = ['auto', 'sunny', 'windy', 'rain', 'storm', 'fog', 'snow', 'night'];
+export const WEATHER_CHOICES = ['auto', 'sunny', 'sunset', 'windy', 'rain', 'storm', 'fog', 'snow', 'night'];
 export const WEATHER_LABELS = {
-  auto: 'AUTO', sunny: 'SUNNY', windy: 'WINDY', rain: 'RAIN', storm: 'STORM', fog: 'FOG', snow: 'SNOW', night: 'NIGHT',
+  auto: 'AUTO', sunny: 'SUNNY', sunset: 'SUNSET', windy: 'WINDY', rain: 'RAIN', storm: 'STORM', fog: 'FOG', snow: 'SNOW', night: 'NIGHT',
 };
 
 const PRESETS = {
@@ -17,6 +17,14 @@ const PRESETS = {
     seaDeep: '#2b8fa3', seaShallow: '#7fd8c8', seaSky: '#cfe4f0', seaFog: '#c9d5da', seaFogNear: 900, seaFogFar: 18000,
     rain: false, snow: false, snowGround: 0, lightning: false, env: 0.55, landingLight: false,
     wind: { from: 250, speed: 3, gust: 1.2 },
+  },
+  sunset: {
+    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 6,
+    fog: '#d59a76', fogNear: 1600, fogFar: 16000,
+    sunColor: '#ffb178', sunIntensity: 3.1, hemiSky: '#ffc9a0', hemiGround: '#5a3a30', hemiIntensity: 1.35,
+    seaDeep: '#1d5162', seaShallow: '#69b4ad', seaSky: '#ffc08a', seaFog: '#d59a76', seaFogNear: 700, seaFogFar: 13000,
+    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.45, landingLight: false,
+    wind: { from: 250, speed: 4, gust: 1.5 },
   },
   windy: {
     label: 'WINDY', bg: 'photo', bgInt: 1,
@@ -104,6 +112,37 @@ function skyBackdrop(kind) {
     g.fillStyle = 'rgba(180,200,225,0.6)';
     g.beginPath(); g.arc(mx - 7, my - 4, 5, 0, Math.PI * 2); g.fill();
     g.beginPath(); g.arc(mx + 8, my + 7, 3, 0, Math.PI * 2); g.fill();
+  } else if (kind === 'sunset') {
+    const grad = g.createLinearGradient(0, 0, 0, 1024);
+    grad.addColorStop(0, '#1c2842');
+    grad.addColorStop(0.3, '#3e4b68');
+    grad.addColorStop(0.5, '#b5675c');
+    grad.addColorStop(0.6, '#f28b52');
+    grad.addColorStop(0.68, '#ffc178');
+    grad.addColorStop(0.78, '#e99a68');
+    grad.addColorStop(1, '#432f34');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 2048, 1024);
+    const sx = 1080; const sy = 610;
+    const glow = g.createRadialGradient(sx, sy, 4, sx, sy, 210);
+    glow.addColorStop(0, 'rgba(255,244,210,0.95)');
+    glow.addColorStop(0.18, 'rgba(255,198,120,0.6)');
+    glow.addColorStop(1, 'rgba(255,150,80,0)');
+    g.fillStyle = glow;
+    g.fillRect(sx - 220, sy - 220, 440, 440);
+    g.fillStyle = '#fff2c9';
+    g.beginPath(); g.arc(sx, sy, 30, 0, Math.PI * 2); g.fill();
+    const random = createRandom(7719);
+    for (let i = 0; i < 55; i += 1) {
+      const x = random() * 2048;
+      const y = 90 + random() * 470;
+      const r = 70 + random() * 260;
+      const cloud = g.createRadialGradient(x, y, 3, x, y, r);
+      cloud.addColorStop(0, `rgba(255,188,142,${0.1 + random() * 0.14})`);
+      cloud.addColorStop(1, 'rgba(255,150,110,0)');
+      g.fillStyle = cloud;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
   } else if (kind === 'fog') {
     const grad = g.createLinearGradient(0, 0, 0, 1024);
     grad.addColorStop(0, '#aab8be');
@@ -185,7 +224,24 @@ export function createWeather({ scene, sky, sea }) {
   const rain = rainSystem();
   const snow = snowSystem();
   scene.add(rain.lines, snow.points);
-  const backdrops = { overcast: skyBackdrop('overcast'), fog: skyBackdrop('fog'), night: skyBackdrop('night') };
+  const backdrops = { overcast: skyBackdrop('overcast'), fog: skyBackdrop('fog'), night: skyBackdrop('night'), sunset: skyBackdrop('sunset') };
+  const sunCanvas = document.createElement('canvas');
+  sunCanvas.width = 128; sunCanvas.height = 128;
+  const sg = sunCanvas.getContext('2d');
+  const sunGrad = sg.createRadialGradient(64, 64, 2, 64, 64, 64);
+  sunGrad.addColorStop(0, 'rgba(255,250,225,1)');
+  sunGrad.addColorStop(0.18, 'rgba(255,228,165,0.85)');
+  sunGrad.addColorStop(0.55, 'rgba(255,180,95,0.22)');
+  sunGrad.addColorStop(1, 'rgba(255,150,70,0)');
+  sg.fillStyle = sunGrad; sg.fillRect(0, 0, 128, 128);
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(sunCanvas), color: '#ffe9c2', transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false, opacity: 0.75,
+  }));
+  sunSprite.scale.setScalar(1700);
+  sunSprite.visible = false;
+  sunSprite.renderOrder = 3;
+  scene.add(sunSprite);
   const sun = sky.userData.sun;
   const hemi = sky.userData.hemi;
   const dome = sky.children[0];
@@ -196,6 +252,14 @@ export function createWeather({ scene, sky, sea }) {
   const terrainSnow = scene.getObjectByName('cinder-coast-terrain')?.userData.snowUniform;
 
   function apply(p) {
+    const az = ((p.sunAzimuth ?? 74) * Math.PI) / 180;
+    const el = ((p.sunElevation ?? 26) * Math.PI) / 180;
+    sky.userData.sunDir.set(Math.cos(el) * Math.sin(az), Math.sin(el), -Math.cos(el) * Math.cos(az)).normalize();
+    seaUniforms.uSun.value.copy(sky.userData.sunDir);
+    const lakeMesh = scene.getObjectByName('caldera-lake');
+    if (lakeMesh?.userData.uniforms) lakeMesh.userData.uniforms.uSun.value.copy(sky.userData.sunDir);
+    sunSprite.position.copy(sky.userData.sunDir).multiplyScalar(22000);
+    sunSprite.visible = p.bg === 'sunset';
     scene.fog.color.set(p.fog);
     scene.fog.near = p.fogNear;
     scene.fog.far = p.fogFar;
@@ -229,6 +293,7 @@ export function createWeather({ scene, sky, sea }) {
     else if (p.bg === 'overcast') tex = backdrops.overcast;
     else if (p.bg === 'fog') tex = backdrops.fog;
     else if (p.bg === 'night') tex = backdrops.night;
+    else if (p.bg === 'sunset') tex = backdrops.sunset;
     if (tex) {
       scene.background = tex;
       scene.backgroundIntensity = p.bgInt;

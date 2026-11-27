@@ -9,6 +9,8 @@ import { createAirport } from './world/airport.js';
 import { createVegetation } from './world/vegetation.js';
 import { createGrass } from './world/grass.js';
 import { createFields } from './world/fields.js';
+import { createLake } from './world/lake.js';
+import { createVillage } from './world/village.js';
 import { createCrashEffects } from './game/effects.js';
 import { createWeather, windVector, WEATHER_CHOICES, WEATHER_LABELS } from './world/weather.js';
 import { createGates, createBeacon, updateGates } from './world/gates.js';
@@ -74,11 +76,8 @@ for (const child of sky.children) {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.userData.clearBackground = tex;
-    scene.background = tex;
     scene.environment = tex;
-    scene.environmentIntensity = 0.55;
-    scene.backgroundIntensity = weather.kind === 'clear' ? 1.0 : 0.28;
-    scene.fog.color.set('#c9d5da');
+    weather.refreshBackground();
   };
 }
 const sunLight = sky.userData.sun;
@@ -109,6 +108,9 @@ const grass = createGrass();
 grass.a.visible = false;
 grass.b.visible = false;
 scene.add(createFields());
+const lake = createLake();
+scene.add(lake);
+scene.add(createVillage());
 
 const weather = createWeather({ scene, sky, sea });
 const effects = createCrashEffects(scene);
@@ -155,12 +157,32 @@ const missionGroups = missions.map((def) => {
 const flight = createFlight({ position: new THREE.Vector3(0, 238, 2050), headingDeg: 0 });
 const rig = createCameraRig(camera);
 const hud = createHud(hudCanvas);
+hudCanvas.addEventListener('click', (event) => {
+  if (screen !== SCREENS.TITLE) return;
+  if (menuPanel) { menuPanel = null; return; }
+  const x = event.clientX;
+  const y = event.clientY;
+  for (const hit of titleHits) {
+    if (x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h) {
+      if (hit.menu !== undefined) { menuIndex = hit.menu; activateTitle(); }
+      else if (hit.start) beginMission(selected);
+      return;
+    }
+  }
+});
 const audio = createAudio();
 const input = createInput(sceneCanvas);
 sceneCanvas.focus();
 
 let screen = SCREENS.TITLE;
-let selected = 1;
+let selected = 2;
+let menuIndex = 0;
+let menuPanel = null;
+let menuToast = '';
+let menuToastUntil = 0;
+let titleHits = [];
+const menuImage = new Image();
+menuImage.src = new URL('../assets/menu-valley.jpg', import.meta.url).href;
 let weatherChoice = 'auto';
 let mission = null;
 let activeGroup = null;
@@ -177,9 +199,9 @@ const stick = { roll: 0, pitch: 0, yaw: 0 };
 let time = 0;
 
 const titleFlight = {
-  position: new THREE.Vector3(520, 244, 1500),
+  position: new THREE.Vector3(-1750, 470, 1450),
   quaternion: new THREE.Quaternion(),
-  speed: 54,
+  speed: 60,
   throttle: 0.55,
   fuel: 80,
   damage: 0,
@@ -191,10 +213,11 @@ const titleFlight = {
   overspeed: false,
   vertical: 0,
   bank: 0,
-  heading: 318,
+  heading: 300,
   gLoad: 1,
 };
-setHeading(titleFlight, 318);
+setHeading(titleFlight, 300);
+titleFlight.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -0.08));
 
 function announce(text) {
   statusEl.textContent = text;
@@ -202,7 +225,8 @@ function announce(text) {
 
 function resolveWeather() {
   if (weatherChoice !== 'auto') return weatherChoice;
-  if (screen === SCREENS.TITLE || !mission) return 'sunny';
+  if (screen === SCREENS.TITLE) return 'sunset';
+  if (!mission) return 'sunny';
   const w = mission.def.weather ?? 'sunny';
   return w === 'clear' ? 'sunny' : w;
 }
@@ -265,12 +289,14 @@ function beginMission(index) {
   elapsed = 0;
   resultDelay = 0;
   screen = SCREENS.BRIEF;
+  hudCanvas.style.pointerEvents = 'none';
   say(mission, ...(def.radio?.start ?? ['TOWER', 'Cleared.']));
   announce(`${def.name}. Press Enter to fly.`);
 }
 
 function startFlying() {
   screen = SCREENS.FLY;
+  hudCanvas.style.pointerEvents = 'none';
   audio.start();
   announce(`${mission.name}. ${mission.objective}.`);
 }
@@ -293,20 +319,27 @@ function toTitle() {
   plane.visible = true;
   cockpit.group.visible = false;
   setCockpitShell(false);
-  weather.set(weatherChoice === 'auto' ? 'sunny' : weatherChoice);
+  weather.set(weatherChoice === 'auto' ? 'sunset' : weatherChoice);
   effects.clear();
-  rig.setMode('orbit');
+  hudCanvas.style.pointerEvents = 'auto';
+  rig.setMode('title');
   announce('Windward: Cinder Coast. Choose a sortie.');
 }
 
 function handleInput() {
   const actions = input.takeActions();
   if (screen === SCREENS.TITLE) {
+    if (menuPanel) {
+      if (actions & (ACTIONS.CONFIRM | ACTIONS.PAUSE)) menuPanel = null;
+      return;
+    }
     if (actions & ACTIONS.WEATHER_NEXT) cycleWeather(1);
     if (actions & ACTIONS.WEATHER_PREV) cycleWeather(-1);
-    if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) selectMission(selected - 1);
-    if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) selectMission(selected + 1);
-    if (actions & ACTIONS.CONFIRM) beginMission(selected);
+    if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) menuIndex = (menuIndex + 4) % 5;
+    if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) menuIndex = (menuIndex + 1) % 5;
+    if (input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) selectMission(selected - 1);
+    if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) selectMission(selected + 1);
+    if (actions & ACTIONS.CONFIRM) activateTitle();
   } else if (screen === SCREENS.BRIEF) {
     if (actions & ACTIONS.WEATHER_NEXT) cycleWeather(1);
     if (actions & ACTIONS.WEATHER_PREV) cycleWeather(-1);
@@ -390,6 +423,11 @@ function updateTitle(dt) {
   plane.quaternion.copy(titleFlight.quaternion);
   plane.userData.propeller.rotation.z += dt * 26;
   plane.userData.propDisc.rotation.z += dt * 3;
+  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(titleFlight.quaternion);
+  titleFlight.position.addScaledVector(fwd, dt * 20);
+  if (titleFlight.position.distanceTo(new THREE.Vector3(-2500, 470, 700)) > 1700) {
+    titleFlight.position.set(-1750, 470, 1450);
+  }
   rig.update(titleFlight, dt, time);
   weather.update(dt, camera, titleFlight);
   cockpit.group.visible = false;
@@ -580,65 +618,335 @@ function wrap(g, text, x, y, maxWidth, lineHeight, align = 'left') {
   return yy;
 }
 
+function roundRect(g, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  g.beginPath();
+  g.moveTo(x + rr, y);
+  g.arcTo(x + w, y, x + w, y + h, rr);
+  g.arcTo(x + w, y + h, x, y + h, rr);
+  g.arcTo(x, y + h, x, y, rr);
+  g.arcTo(x, y, x + w, y, rr);
+  g.closePath();
+}
+
+function activateTitle() {
+  if (menuIndex === 0 || menuIndex === 1) beginMission(selected);
+  else if (menuIndex === 2) menuPanel = 'settings';
+  else if (menuIndex === 3) menuPanel = 'achievements';
+  else { menuToast = 'Cierra la pestaña para salir'; menuToastUntil = performance.now() + 4000; }
+}
+
 function drawTitle(g, W, H, s) {
-  const grad = g.createLinearGradient(0, 0, W * 0.7, 0);
-  grad.addColorStop(0, 'rgba(6,10,12,0.86)');
-  grad.addColorStop(0.42, 'rgba(6,10,12,0.6)');
-  grad.addColorStop(0.68, 'rgba(6,10,12,0.14)');
-  grad.addColorStop(1, 'rgba(6,10,12,0)');
+  titleHits = [];
+  const panel = (x, y, w, h, r = 12, fill = 'rgba(9,15,18,0.62)') => {
+    roundRect(g, x, y, w, h, r);
+    g.fillStyle = fill;
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.12)';
+    g.lineWidth = 1;
+    g.stroke();
+  };
+  const icon = (kind, x, y, size, color = '#f3ead8') => {
+    g.save();
+    g.translate(x, y);
+    g.strokeStyle = color;
+    g.fillStyle = color;
+    g.lineWidth = Math.max(1.4, size * 0.09);
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    if (kind === 'play') {
+      g.beginPath(); g.arc(0, 0, size * 0.5, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.moveTo(-size * 0.13, -size * 0.22); g.lineTo(size * 0.24, 0); g.lineTo(-size * 0.13, size * 0.22); g.closePath(); g.fill();
+    } else if (kind === 'mountain') {
+      g.beginPath(); g.moveTo(-size * 0.48, size * 0.28); g.lineTo(-size * 0.08, -size * 0.3); g.lineTo(size * 0.13, 0); g.lineTo(size * 0.28, -size * 0.16); g.lineTo(size * 0.5, size * 0.28); g.closePath(); g.stroke();
+    } else if (kind === 'gear') {
+      g.beginPath(); g.arc(0, 0, size * 0.22, 0, Math.PI * 2); g.stroke();
+      for (let i = 0; i < 8; i += 1) {
+        const a = (i / 8) * Math.PI * 2;
+        g.beginPath(); g.moveTo(Math.cos(a) * size * 0.3, Math.sin(a) * size * 0.3); g.lineTo(Math.cos(a) * size * 0.48, Math.sin(a) * size * 0.48); g.stroke();
+      }
+    } else if (kind === 'bars') {
+      g.strokeStyle = color; g.lineWidth = size * 0.12;
+      for (let i = 0; i < 3; i += 1) { const h = size * (0.22 + i * 0.14); g.beginPath(); g.moveTo(-size * 0.25 + i * size * 0.25, size * 0.3); g.lineTo(-size * 0.25 + i * size * 0.25, size * 0.3 - h); g.stroke(); }
+    } else if (kind === 'exit') {
+      g.strokeRect(-size * 0.38, -size * 0.4, size * 0.45, size * 0.8);
+      g.beginPath(); g.moveTo(-size * 0.02, 0); g.lineTo(size * 0.42, 0); g.stroke();
+      g.beginPath(); g.moveTo(size * 0.2, -size * 0.16); g.lineTo(size * 0.42, 0); g.lineTo(size * 0.2, size * 0.16); g.stroke();
+    } else if (kind === 'person') {
+      g.beginPath(); g.arc(0, -size * 0.18, size * 0.2, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(0, size * 0.3, size * 0.38, Math.PI, 0); g.fill();
+    } else if (kind === 'pin') {
+      g.beginPath(); g.arc(0, -size * 0.12, size * 0.22, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.moveTo(0, size * 0.42); g.lineTo(-size * 0.18, size * 0.05); g.lineTo(size * 0.18, size * 0.05); g.closePath(); g.fill();
+    } else if (kind === 'coin') {
+      g.beginPath(); g.arc(0, 0, size * 0.36, 0, Math.PI * 2); g.fillStyle = '#ffc65c'; g.fill();
+      g.fillStyle = '#8a6420'; g.font = `700 ${size * 0.4}px "Helvetica Neue", Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('$', 0, 0);
+    } else if (kind === 'arrow') {
+      g.beginPath(); g.moveTo(-size * 0.4, 0); g.lineTo(size * 0.38, 0); g.stroke();
+      g.beginPath(); g.moveTo(size * 0.1, -size * 0.22); g.lineTo(size * 0.4, 0); g.lineTo(size * 0.1, size * 0.22); g.stroke();
+    } else if (kind === 'plane') {
+      g.beginPath(); g.moveTo(-size * 0.45, 0); g.lineTo(size * 0.35, 0); g.lineTo(size * 0.45, size * 0.08); g.lineTo(size * 0.05, size * 0.08); g.lineTo(0, size * 0.32); g.lineTo(-size * 0.08, size * 0.32); g.lineTo(-size * 0.04, size * 0.08); g.lineTo(-size * 0.28, size * 0.08); g.lineTo(-size * 0.38, size * 0.2); g.lineTo(-size * 0.45, size * 0.2); g.closePath(); g.fill();
+    }
+    g.restore();
+  };
+
+  const grad = g.createLinearGradient(0, 0, W * 0.56, 0);
+  grad.addColorStop(0, 'rgba(5,9,12,0.7)');
+  grad.addColorStop(0.55, 'rgba(5,9,12,0.24)');
+  grad.addColorStop(1, 'rgba(5,9,12,0)');
   g.fillStyle = grad;
   g.fillRect(0, 0, W, H);
 
-  const x = 92 * s;
-  g.textAlign = 'left';
-  g.fillStyle = PALETTE.cream;
-  g.font = `700 ${74 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.letterSpacing = `${8 * s}px`;
-  g.fillText('WINDWARD', x, H * 0.32);
-  g.letterSpacing = `${5 * s}px`;
-  g.fillStyle = PALETTE.amber;
-  g.font = `600 ${15 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('CINDER COAST', x + 3 * s, H * 0.32 + 30 * s);
-  g.letterSpacing = '0px';
-  g.fillStyle = 'rgba(255,241,210,0.6)';
-  g.font = `400 ${14 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('A coastal flight in eight sorties.', x + 3 * s, H * 0.32 + 62 * s);
-
-  g.strokeStyle = 'rgba(255,180,92,0.6)';
-  g.lineWidth = 1;
+  // Wordmark and wing.
+  const lx = 48 * s;
+  const ly = 42 * s;
+  g.save();
+  g.translate(lx, ly);
+  g.fillStyle = '#f7efe0';
   g.beginPath();
-  g.moveTo(x + 3 * s, H * 0.32 + 78 * s);
-  g.lineTo(x + 330 * s, H * 0.32 + 78 * s);
-  g.stroke();
+  g.moveTo(0, 26 * s);
+  g.bezierCurveTo(42 * s, -8 * s, 112 * s, -7 * s, 158 * s, 16 * s);
+  g.bezierCurveTo(118 * s, 7 * s, 58 * s, 9 * s, 22 * s, 34 * s);
+  g.closePath();
+  g.fill();
+  g.beginPath();
+  g.moveTo(95 * s, 5 * s); g.lineTo(111 * s, -26 * s); g.lineTo(120 * s, -3 * s); g.lineTo(144 * s, -12 * s); g.lineTo(128 * s, 14 * s); g.closePath();
+  g.fill();
+  g.restore();
+  g.fillStyle = '#f7efe0';
+  g.font = `italic 900 ${43 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.textAlign = 'left';
+  g.letterSpacing = `${2 * s}px`;
+  g.fillText('WINDWARD', 226 * s, 74 * s);
+  g.letterSpacing = `${5 * s}px`;
+  g.fillStyle = 'rgba(247,239,224,0.75)';
+  g.font = `600 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('FLY  ·  EXPLORE  ·  SURVIVE', 228 * s, 96 * s);
+  g.letterSpacing = '0px';
 
-  missions.forEach((m, i) => {
-    const y = H * 0.49 + i * 37 * s;
-    const active = i === selected;
+  // Profile card.
+  const pw = 356 * s;
+  const px = W - pw - 30 * s;
+  const py = 26 * s;
+  panel(px, py, pw, 78 * s, 12, 'rgba(14,20,24,0.62)');
+  g.fillStyle = 'rgba(255,255,255,0.1)';
+  g.beginPath(); g.arc(px + 36 * s, py + 39 * s, 24 * s, 0, Math.PI * 2); g.fill();
+  icon('person', px + 36 * s, py + 39 * s, 30 * s, '#d6d0c2');
+  g.textAlign = 'left';
+  g.fillStyle = '#f3ead8';
+  g.font = `700 ${14 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('JefersonYaan', px + 70 * s, py + 32 * s);
+  g.fillStyle = 'rgba(255,241,210,0.55)';
+  g.font = `500 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('Nivel 12', px + 70 * s, py + 47 * s);
+  g.fillStyle = 'rgba(255,255,255,0.12)';
+  g.fillRect(px + 70 * s, py + 54 * s, 190 * s, 4 * s);
+  g.fillStyle = '#6fdcae';
+  g.fillRect(px + 70 * s, py + 54 * s, 126 * s, 4 * s);
+  icon('coin', px + pw - 62 * s, py + 38 * s, 22 * s);
+  g.fillStyle = '#ffd479';
+  g.font = `700 ${13 * s}px "SF Mono", Consolas, monospace`;
+  g.textAlign = 'right';
+  g.fillText('2,450', px + pw - 14 * s, py + 43 * s);
+
+  // Left menu.
+  const mx = 34 * s;
+  const mw = 400 * s;
+  const my = 286 * s;
+  const items = [
+    ['play', 'Continuar', `Misión: ${missions[selected].name}`],
+    ['mountain', 'Nueva Partida', 'Elige una misión'],
+    ['gear', 'Configuración', 'Clima, cámara y controles'],
+    ['bars', 'Logros', 'Progreso del piloto'],
+    ['exit', 'Salir', 'Cerrar la sesión'],
+  ];
+  items.forEach(([kind, label, sub], i) => {
+    const y = my + i * 58 * s;
+    const active = i === menuIndex;
+    titleHits.push({ x: mx, y, w: mw, h: 54 * s, menu: i });
     if (active) {
-      g.fillStyle = 'rgba(255,180,92,0.14)';
-      g.fillRect(x - 10 * s, y - 19 * s, 388 * s, 32 * s);
-      g.fillStyle = PALETTE.amber;
-      g.fillRect(x - 10 * s, y - 19 * s, 2.5 * s, 32 * s);
+      roundRect(g, mx, y, mw, 54 * s, 8);
+      const hg = g.createLinearGradient(mx, y, mx + mw, y);
+      hg.addColorStop(0, 'rgba(72,142,101,0.42)');
+      hg.addColorStop(1, 'rgba(26,48,40,0.2)');
+      g.fillStyle = hg; g.fill();
+      g.strokeStyle = 'rgba(126,230,177,0.28)'; g.lineWidth = 1; g.stroke();
+      g.fillStyle = '#76e0af';
+      g.fillRect(mx, y + 7 * s, 3 * s, 40 * s);
     }
-    g.fillStyle = active ? PALETTE.cream : 'rgba(255,241,210,0.55)';
+    g.fillStyle = active ? '#f5edda' : 'rgba(245,237,218,0.78)';
+    icon(kind, mx + 34 * s, y + 27 * s, 22 * s, active ? '#f5edda' : 'rgba(245,237,218,0.7)');
+    g.textAlign = 'left';
     g.font = `${active ? 700 : 500} ${17 * s}px "Helvetica Neue", Arial, sans-serif`;
-    g.fillText(`0${i + 1}`, x, y);
-    g.font = `${active ? 600 : 400} ${15 * s}px "Helvetica Neue", Arial, sans-serif`;
-    g.fillText(m.name.toUpperCase(), x + 44 * s, y);
-    g.fillStyle = active ? 'rgba(255,241,210,0.7)' : 'rgba(255,241,210,0.3)';
-    g.font = `400 ${10.5 * s}px "Helvetica Neue", Arial, sans-serif`;
-    g.fillText(m.objective, x + 44 * s, y + 17 * s);
+    g.fillStyle = active ? '#f5edda' : 'rgba(245,237,218,0.78)';
+    g.fillText(label, mx + 62 * s, y + 24 * s);
+    g.font = `400 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+    g.fillStyle = active ? 'rgba(245,237,218,0.6)' : 'rgba(245,237,218,0.34)';
+    g.fillText(sub, mx + 62 * s, y + 40 * s);
+    if (active) {
+      g.strokeStyle = 'rgba(245,237,218,0.5)';
+      g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(mx + mw - 22 * s, y + 22 * s); g.lineTo(mx + mw - 14 * s, y + 27 * s); g.lineTo(mx + mw - 22 * s, y + 32 * s); g.stroke();
+    }
   });
 
-  g.fillStyle = 'rgba(255,241,210,0.55)';
-  g.font = `600 ${10.5 * s}px "SF Mono", Consolas, monospace`;
-  g.fillText(`WEATHER  ${WEATHER_LABELS[weatherChoice]}`, x, H - 70 * s);
-  g.fillStyle = 'rgba(255,241,210,0.45)';
-  g.font = `500 ${10.5 * s}px "Helvetica Neue", Arial, sans-serif`;
-  g.fillText('↑ ↓ SELECT   ENTER FLY   T WEATHER   MOUSE FLY · WHEEL THROTTLE', x, H - 46 * s);
+  // Mission card.
+  const cw = 340 * s;
+  const cx = W - cw - 30 * s;
+  const cy = 120 * s;
+  const ch = 360 * s;
+  panel(cx, cy, cw, ch, 12, 'rgba(12,18,22,0.66)');
+  const imgH = 155 * s;
+  g.save();
+  roundRect(g, cx, cy, cw, imgH, 12);
+  g.clip();
+  if (menuImage.complete && menuImage.naturalWidth) {
+    const scale = Math.max(cw / menuImage.naturalWidth, imgH / menuImage.naturalHeight);
+    const dw = menuImage.naturalWidth * scale;
+    const dh = menuImage.naturalHeight * scale;
+    g.drawImage(menuImage, cx + (cw - dw) / 2, cy + (imgH - dh) / 2, dw, dh);
+  } else {
+    const imgGrad = g.createLinearGradient(cx, cy, cx + cw, cy + imgH);
+    imgGrad.addColorStop(0, '#3b4a5c'); imgGrad.addColorStop(1, '#b07855');
+    g.fillStyle = imgGrad; g.fillRect(cx, cy, cw, imgH);
+  }
+  const shade = g.createLinearGradient(0, cy + imgH * 0.35, 0, cy + imgH);
+  shade.addColorStop(0, 'rgba(8,12,15,0)'); shade.addColorStop(1, 'rgba(8,12,15,0.78)');
+  g.fillStyle = shade; g.fillRect(cx, cy, cw, imgH);
+  g.restore();
+  icon('pin', cx + 22 * s, cy + imgH + 22 * s, 13 * s, '#ffd08a');
+  g.textAlign = 'left';
+  g.fillStyle = '#ffcb86';
+  g.font = `600 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('MISIÓN PRINCIPAL', cx + 36 * s, cy + imgH + 26 * s);
+  g.fillStyle = '#f5edda';
+  g.font = `700 ${19 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText(missions[selected].name, cx + 18 * s, cy + imgH + 51 * s);
+  g.fillStyle = 'rgba(245,237,218,0.62)';
+  g.font = `400 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
+  wrap(g, missions[selected].brief, cx + 18 * s, cy + imgH + 70 * s, cw - 36 * s, 14 * s);
+  g.fillStyle = 'rgba(245,237,218,0.4)';
+  g.font = `500 ${8.5 * s}px "SF Mono", Consolas, monospace`;
   g.textAlign = 'right';
-  g.fillStyle = 'rgba(255,241,210,0.28)';
-  g.fillText('A MAKE.FUN FLIGHT GAME', W - 34 * s, H - 46 * s);
+  g.fillText('◀ ▶  CAMBIAR MISIÓN', cx + cw - 16 * s, cy + imgH + 51 * s);
+  const by = cy + ch - 46 * s;
+  titleHits.push({ x: cx + 16 * s, y: by, w: cw - 32 * s, h: 32 * s, start: true });
+  roundRect(g, cx + 16 * s, by, cw - 32 * s, 32 * s, 6);
+  g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.18)'; g.stroke();
+  icon('arrow', cx + 40 * s, by + 16 * s, 12 * s, '#f5edda');
+  g.textAlign = 'center';
+  g.fillStyle = '#f5edda';
+  g.font = `600 ${11 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('Iniciar Misión', cx + cw / 2 + 8 * s, by + 20 * s);
+
+  // Quick controls.
+  const qx = 34 * s;
+  const qy = H - 134 * s;
+  const qw = 660 * s;
+  panel(qx, qy, qw, 88 * s, 10, 'rgba(12,18,22,0.62)');
+  g.textAlign = 'left';
+  g.fillStyle = 'rgba(245,237,218,0.72)';
+  g.font = `600 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('Controles Rápidos', qx + 16 * s, qy + 20 * s);
+  const key = (label, x, y) => {
+    roundRect(g, x, y, 22 * s, 22 * s, 4);
+    g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.2)'; g.stroke();
+    g.fillStyle = '#f5edda';
+    g.font = `600 ${10 * s}px "SF Mono", Consolas, monospace`;
+    g.textAlign = 'center';
+    g.fillText(label, x + 11 * s, y + 15 * s);
+  };
+  let kx = qx + 18 * s;
+  ['W', 'A', 'S', 'D'].forEach((k) => { key(k, kx, qy + 34 * s); kx += 26 * s; });
+  g.fillStyle = 'rgba(245,237,218,0.58)';
+  g.font = `500 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.textAlign = 'left';
+  g.fillText('Mover', qx + 18 * s, qy + 72 * s);
+  key('↑', qx + 150 * s, qy + 34 * s);
+  g.fillText('Ascender', qx + 178 * s, qy + 49 * s);
+  key('↓', qx + 276 * s, qy + 34 * s);
+  g.fillText('Descender', qx + 304 * s, qy + 49 * s);
+  roundRect(g, qx + 412 * s, qy + 34 * s, 34 * s, 22 * s, 4);
+  g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.2)'; g.stroke();
+  g.fillStyle = '#f5edda'; g.font = `600 ${9 * s}px "SF Mono", Consolas, monospace`; g.textAlign = 'center';
+  g.fillText('Esc', qx + 429 * s, qy + 49 * s);
+  g.textAlign = 'left'; g.fillStyle = 'rgba(245,237,218,0.58)'; g.font = `500 ${9.5 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('Menú', qx + 454 * s, qy + 49 * s);
+
+  // Speed / altitude dial.
+  const gx = W - 146 * s;
+  const gy = H - 108 * s;
+  const gr = 82 * s;
+  g.fillStyle = 'rgba(10,16,20,0.62)';
+  g.beginPath(); g.arc(gx, gy, gr, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 1; g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,0.13)';
+  g.lineWidth = 6 * s;
+  g.beginPath(); g.arc(gx, gy, gr - 12 * s, Math.PI * 0.72, Math.PI * 2.28); g.stroke();
+  g.strokeStyle = '#6fdcae';
+  g.beginPath(); g.arc(gx, gy, gr - 12 * s, Math.PI * 0.72, Math.PI * 1.48); g.stroke();
+  icon('plane', gx + 2 * s, gy + 2 * s, 34 * s, '#f5edda');
+  g.textAlign = 'right';
+  g.fillStyle = '#f5edda';
+  g.font = `700 ${24 * s}px "SF Mono", Consolas, monospace`;
+  g.fillText('248', gx - 38 * s, gy + 4 * s);
+  g.fillStyle = 'rgba(245,237,218,0.55)';
+  g.font = `600 ${8 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('KM/H', gx - 38 * s, gy + 18 * s);
+  g.textAlign = 'left';
+  g.fillStyle = '#f5edda';
+  g.font = `700 ${19 * s}px "SF Mono", Consolas, monospace`;
+  g.fillText('2,430', gx + 34 * s, gy + 4 * s);
+  g.fillStyle = 'rgba(245,237,218,0.55)';
+  g.font = `600 ${8 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('ALT', gx + 34 * s, gy + 18 * s);
+
+  g.textAlign = 'left';
+  g.fillStyle = 'rgba(245,237,218,0.48)';
+  g.font = `italic 400 ${13 * s}px "Helvetica Neue", Arial, sans-serif`;
+  g.fillText('Surca los cielos, descubre un mundo lleno de secretos…', 34 * s, H - 18 * s);
+
+  if (menuPanel) {
+    g.fillStyle = 'rgba(5,9,12,0.62)';
+    g.fillRect(0, 0, W, H);
+    const pw2 = 560 * s;
+    const ph2 = 300 * s;
+    const x2 = (W - pw2) / 2;
+    const y2 = (H - ph2) / 2;
+    panel(x2, y2, pw2, ph2, 14, 'rgba(12,18,22,0.92)');
+    g.textAlign = 'left';
+    g.fillStyle = '#f5edda';
+    g.font = `700 ${22 * s}px "Helvetica Neue", Arial, sans-serif`;
+    g.fillText(menuPanel === 'settings' ? 'Configuración' : 'Logros', x2 + 28 * s, y2 + 44 * s);
+    g.fillStyle = 'rgba(245,237,218,0.7)';
+    g.font = `400 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
+    if (menuPanel === 'settings') {
+      g.fillText(`Clima: ${weather.label}   (T cambia)`, x2 + 28 * s, y2 + 86 * s);
+      g.fillText('Sombras y texturas: completas', x2 + 28 * s, y2 + 112 * s);
+      g.fillText('Cámara: C   ·   Motor: X   ·   Freno: B', x2 + 28 * s, y2 + 138 * s);
+      g.fillText('ENTER o ESC para cerrar', x2 + 28 * s, y2 + ph2 - 28 * s);
+    } else {
+      g.fillText('· Primer vuelo', x2 + 28 * s, y2 + 88 * s);
+      g.fillText('· Aterrizaje suave', x2 + 28 * s, y2 + 114 * s);
+      g.fillText('· Motor en marcha', x2 + 28 * s, y2 + 140 * s);
+      g.fillText('· Vuelo nocturno', x2 + 28 * s, y2 + 166 * s);
+      g.fillText('ENTER o ESC para cerrar', x2 + 28 * s, y2 + ph2 - 28 * s);
+    }
+  }
+
+  if (menuToast && performance.now() < menuToastUntil) {
+    g.textAlign = 'center';
+    g.fillStyle = 'rgba(10,16,20,0.8)';
+    g.font = `600 ${12 * s}px "Helvetica Neue", Arial, sans-serif`;
+    const tw = g.measureText(menuToast).width + 30 * s;
+    roundRect(g, W / 2 - tw / 2, H - 86 * s, tw, 28 * s, 5);
+    g.fill();
+    g.fillStyle = '#f5edda';
+    g.fillText(menuToast, W / 2, H - 68 * s);
+  }
 }
 
 function drawBrief(g, W, H, s) {

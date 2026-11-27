@@ -3,7 +3,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { WORLD } from '../config.js';
 import { createRandom } from '../util/math.js';
-import { sampleHeight } from './terrain.js';
+import { sampleHeight, inLake } from './terrain.js';
 
 export function createVegetation() {
   const group = new THREE.Group();
@@ -49,7 +49,7 @@ export function createVegetation() {
     const h = sampleHeight(x, z);
     const dx = Math.abs(x - WORLD.runway.x);
     const dz = Math.abs(z - WORLD.runway.z);
-    if (h < 7 || h > 700) continue;
+    if (h < 7 || h > 700 || inLake(x, z)) continue;
     if (dx < 360 && dz < 680) continue;
     const hx = sampleHeight(x + 8, z) - h;
     const hz = sampleHeight(x, z + 8) - h;

@@ -3,7 +3,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { WORLD } from '../config.js';
 import { createRandom } from '../util/math.js';
-import { sampleHeight } from './terrain.js';
+import { sampleHeight, inLake } from './terrain.js';
 
 function bladeTexture() {
   const c = document.createElement('canvas');
@@ -55,7 +55,7 @@ export function createGrass() {
     const x = (random() - 0.5) * 2200;
     const z = (random() - 0.5) * 2200 + 80;
     const h = sampleHeight(x, z);
-    if (h < 4) continue;
+    if (h < 4 || inLake(x, z)) continue;
     if (Math.abs(x - WORLD.runway.x) < 44 && Math.abs(z - WORLD.runway.z) < 520) continue;
     const hx = sampleHeight(x + 6, z) - h;
     const hz = sampleHeight(x, z + 6) - h;

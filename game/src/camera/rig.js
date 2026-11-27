@@ -52,6 +52,20 @@ export function createCameraRig(camera) {
       return;
     }
 
+    if (mode === 'title') {
+      local.set(-16, 7, 30).applyQuaternion(flight.quaternion);
+      desired.copy(flight.position).add(local);
+      camera.position.copy(desired);
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(flight.quaternion);
+      look.copy(flight.position).addScaledVector(fwd, 130).addScaledVector(right, 18);
+      look.y += 3;
+      camera.up.copy(UP);
+      camera.lookAt(look);
+      camera.fov = 55;
+      camera.updateProjectionMatrix();
+      return;
+    }
+
     if (mode === 'wing') {
       local.set(6.9, 1.0, 0.55).applyQuaternion(flight.quaternion);
       desired.copy(flight.position).add(local);
