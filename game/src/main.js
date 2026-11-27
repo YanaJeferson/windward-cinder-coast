@@ -13,6 +13,7 @@ import { createLake } from './world/lake.js';
 import { createVillage } from './world/village.js';
 import { createCrashEffects } from './game/effects.js';
 import { createWeather, windVector, WEATHER_CHOICES, WEATHER_LABELS } from './world/weather.js';
+import { loadHDR } from './util/hdr.js';
 import { createGates, createBeacon, updateGates } from './world/gates.js';
 import { createAircraft } from './aircraft/plane.js';
 import { createCockpit } from './aircraft/cockpit.js';
@@ -41,7 +42,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.16;
+renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -51,6 +52,8 @@ scene.fog = new THREE.Fog(new THREE.Color('#e8bf97'), WORLD.fog.near, WORLD.fog.
 
 const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.4, 30000);
 camera.position.set(0, 240, 3000);
+
+
 
 const sky = createSky();
 scene.add(sky);
@@ -76,7 +79,6 @@ for (const child of sky.children) {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.userData.clearBackground = tex;
-    scene.environment = tex;
     weather.refreshBackground();
   };
 }
@@ -114,6 +116,19 @@ scene.add(createVillage());
 
 const weather = createWeather({ scene, sky, sea });
 const effects = createCrashEffects(scene);
+const pmrem = new THREE.PMREMGenerator(renderer);
+pmrem.compileEquirectangularShader();
+Promise.all([
+  loadHDR(new URL('../assets/day_sky.hdr', import.meta.url).href),
+  loadHDR(new URL('../assets/sunset_sky.hdr', import.meta.url).href),
+]).then(([dayHDR, sunsetHDR]) => {
+  scene.userData.envDay = pmrem.fromEquirectangular(dayHDR).texture;
+  scene.userData.envSunset = pmrem.fromEquirectangular(sunsetHDR).texture;
+  scene.userData.bgDay = dayHDR;
+  scene.userData.bgSunset = sunsetHDR;
+  pmrem.dispose();
+  weather.set(weather.kind);
+}).catch(() => {});
 const plane = createAircraft();
 plane.traverse((o) => {
   if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
@@ -638,7 +653,7 @@ function activateTitle() {
 
 function drawTitle(g, W, H, s) {
   titleHits = [];
-  const panel = (x, y, w, h, r = 12, fill = 'rgba(9,15,18,0.62)') => {
+  const panel = (x, y, w, h, r = 12, fill = 'rgba(7,11,14,0.84)') => {
     roundRect(g, x, y, w, h, r);
     g.fillStyle = fill;
     g.fill();
@@ -691,9 +706,10 @@ function drawTitle(g, W, H, s) {
   };
 
   const grad = g.createLinearGradient(0, 0, W * 0.56, 0);
-  grad.addColorStop(0, 'rgba(5,9,12,0.7)');
-  grad.addColorStop(0.55, 'rgba(5,9,12,0.24)');
-  grad.addColorStop(1, 'rgba(5,9,12,0)');
+  grad.addColorStop(0, 'rgba(4,8,11,0.88)');
+  grad.addColorStop(0.48, 'rgba(4,8,11,0.6)');
+  grad.addColorStop(0.75, 'rgba(4,8,11,0.18)');
+  grad.addColorStop(1, 'rgba(4,8,11,0)');
   g.fillStyle = grad;
   g.fillRect(0, 0, W, H);
 
@@ -728,7 +744,7 @@ function drawTitle(g, W, H, s) {
   const pw = 356 * s;
   const px = W - pw - 30 * s;
   const py = 26 * s;
-  panel(px, py, pw, 78 * s, 12, 'rgba(14,20,24,0.62)');
+  panel(px, py, pw, 78 * s, 12, 'rgba(10,15,18,0.86)');
   g.fillStyle = 'rgba(255,255,255,0.1)';
   g.beginPath(); g.arc(px + 36 * s, py + 39 * s, 24 * s, 0, Math.PI * 2); g.fill();
   icon('person', px + 36 * s, py + 39 * s, 30 * s, '#d6d0c2');
@@ -767,8 +783,8 @@ function drawTitle(g, W, H, s) {
     if (active) {
       roundRect(g, mx, y, mw, 54 * s, 8);
       const hg = g.createLinearGradient(mx, y, mx + mw, y);
-      hg.addColorStop(0, 'rgba(72,142,101,0.42)');
-      hg.addColorStop(1, 'rgba(26,48,40,0.2)');
+      hg.addColorStop(0, 'rgba(46,112,78,0.78)');
+      hg.addColorStop(1, 'rgba(16,34,28,0.65)');
       g.fillStyle = hg; g.fill();
       g.strokeStyle = 'rgba(126,230,177,0.28)'; g.lineWidth = 1; g.stroke();
       g.fillStyle = '#76e0af';
@@ -795,7 +811,7 @@ function drawTitle(g, W, H, s) {
   const cx = W - cw - 30 * s;
   const cy = 120 * s;
   const ch = 360 * s;
-  panel(cx, cy, cw, ch, 12, 'rgba(12,18,22,0.66)');
+  panel(cx, cy, cw, ch, 12, 'rgba(8,12,15,0.88)');
   const imgH = 155 * s;
   g.save();
   roundRect(g, cx, cy, cw, imgH, 12);
@@ -844,15 +860,15 @@ function drawTitle(g, W, H, s) {
   const qx = 34 * s;
   const qy = H - 134 * s;
   const qw = 660 * s;
-  panel(qx, qy, qw, 88 * s, 10, 'rgba(12,18,22,0.62)');
+  panel(qx, qy, qw, 88 * s, 10, 'rgba(8,12,15,0.86)');
   g.textAlign = 'left';
   g.fillStyle = 'rgba(245,237,218,0.72)';
   g.font = `600 ${10 * s}px "Helvetica Neue", Arial, sans-serif`;
   g.fillText('Controles Rápidos', qx + 16 * s, qy + 20 * s);
   const key = (label, x, y) => {
     roundRect(g, x, y, 22 * s, 22 * s, 4);
-    g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
-    g.strokeStyle = 'rgba(255,255,255,0.2)'; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.16)'; g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.38)'; g.stroke();
     g.fillStyle = '#f5edda';
     g.font = `600 ${10 * s}px "SF Mono", Consolas, monospace`;
     g.textAlign = 'center';

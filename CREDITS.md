@@ -12,3 +12,5 @@ licenses. They are not taken from another game.
 
 The textures are resized and compiled into the game at build time; no attribution is required by
 the license, but the sources are credited here.
+
+- Sky HDRIs: **Qwantani Dusk 2 (Pure Sky)** and **Kloppenheim 06 (Pure Sky)** by Poly Haven — https://polyhaven.com/a/qwantani_dusk_2_puresky and https://polyhaven.com/a/kloppenheim_06_puresky (CC0)

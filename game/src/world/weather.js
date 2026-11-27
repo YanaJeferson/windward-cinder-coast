@@ -15,15 +15,15 @@ const PRESETS = {
     fog: '#c9d5da', fogNear: 5000, fogFar: 22000,
     sunColor: '#fff0d2', sunIntensity: 3.2, hemiSky: '#c8dcea', hemiGround: '#5b4a36', hemiIntensity: 1.5,
     seaDeep: '#2b8fa3', seaShallow: '#7fd8c8', seaSky: '#cfe4f0', seaFog: '#c9d5da', seaFogNear: 900, seaFogFar: 18000,
-    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.55, landingLight: false,
+    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.24, landingLight: false,
     wind: { from: 250, speed: 3, gust: 1.2 },
   },
   sunset: {
-    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 6,
+    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 6, envKind: 'sunset',
     fog: '#d59a76', fogNear: 1600, fogFar: 16000,
-    sunColor: '#ffb178', sunIntensity: 3.1, hemiSky: '#ffc9a0', hemiGround: '#5a3a30', hemiIntensity: 1.35,
+    sunColor: '#ffb178', sunIntensity: 1.7, hemiSky: '#ffc9a0', hemiGround: '#5a3a30', hemiIntensity: 0.75,
     seaDeep: '#1d5162', seaShallow: '#69b4ad', seaSky: '#ffc08a', seaFog: '#d59a76', seaFogNear: 700, seaFogFar: 13000,
-    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.45, landingLight: false,
+    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.05, landingLight: false,
     wind: { from: 250, speed: 4, gust: 1.5 },
   },
   windy: {
@@ -31,7 +31,7 @@ const PRESETS = {
     fog: '#c4d2d9', fogNear: 4500, fogFar: 20000,
     sunColor: '#fff0d2', sunIntensity: 2.7, hemiSky: '#c8dcea', hemiGround: '#5b4a36', hemiIntensity: 1.15,
     seaDeep: '#287f93', seaShallow: '#79d4c4', seaSky: '#cfe4f0', seaFog: '#c9d5da', seaFogNear: 800, seaFogFar: 17000,
-    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.5, landingLight: false,
+    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.3, landingLight: false,
     wind: { from: 262, speed: 14, gust: 7 },
   },
   rain: {
@@ -236,9 +236,9 @@ export function createWeather({ scene, sky, sea }) {
   sg.fillStyle = sunGrad; sg.fillRect(0, 0, 128, 128);
   const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
     map: new THREE.CanvasTexture(sunCanvas), color: '#ffe9c2', transparent: true,
-    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false, opacity: 0.75,
+    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false, opacity: 0.45,
   }));
-  sunSprite.scale.setScalar(1700);
+  sunSprite.scale.setScalar(1150);
   sunSprite.visible = false;
   sunSprite.renderOrder = 3;
   scene.add(sunSprite);
@@ -278,6 +278,8 @@ export function createWeather({ scene, sky, sea }) {
     seaUniforms.uFogColor.value.set(p.seaFog);
     seaUniforms.uFogNear.value = p.seaFogNear;
     seaUniforms.uFogFar.value = p.seaFogFar;
+    const envMap = p.envKind === 'sunset' ? scene.userData.envSunset : scene.userData.envDay;
+    if (envMap) scene.environment = envMap;
     scene.environmentIntensity = p.env;
     if (terrainSnow) terrainSnow.value = p.snowGround;
     const fields = scene.getObjectByName('cinder-coast-fields');

@@ -47,7 +47,7 @@ export function createLake() {
         float ripple = smoothstep(0.6, 0.9, noise(vWorld.xz * 0.08 + uTime * 0.8)) * shimmer;
         vec3 col = mix(uDeep, uShallow, 0.42 + fres * 0.18);
         col = mix(col, uSky, fres * 0.72);
-        col += uSunColor * (shimmer * 0.9 + ripple * 1.5);
+        col += uSunColor * (shimmer * 0.38 + ripple * 0.65);
         gl_FragColor = vec4(col, 1.0);
       }
     `,
