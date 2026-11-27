@@ -19,11 +19,11 @@ const PRESETS = {
     wind: { from: 250, speed: 3, gust: 1.2 },
   },
   sunset: {
-    label: 'SUNSET', bg: 'sunset', bgInt: 1, sunAzimuth: 300, sunElevation: 11.5, envKind: 'sunset',
+    label: 'SUNSET', bg: 'sunset', bgInt: 1, bgBlur: 0, sunAzimuth: 300, sunElevation: 11.5, envKind: 'sunset',
     fog: '#d89d7c', fogNear: 1700, fogFar: 15500,
-    sunColor: '#ffbb85', sunIntensity: 2.5, hemiSky: '#ffd0ab', hemiGround: '#5c3d33', hemiIntensity: 1.25,
+    sunColor: '#ffb178', sunIntensity: 2.6, hemiSky: '#ffd3b0', hemiGround: '#5c3d33', hemiIntensity: 1.2,
     seaDeep: '#1d5162', seaShallow: '#69b4ad', seaSky: '#ffc08a', seaFog: '#d59a76', seaFogNear: 700, seaFogFar: 13000,
-    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.05, landingLight: false,
+    rain: false, snow: false, snowGround: 0, lightning: false, env: 0.14, landingLight: false,
     wind: { from: 250, speed: 4, gust: 1.5 },
   },
   windy: {
@@ -367,6 +367,7 @@ export function createWeather({ scene, sky, sea }) {
     else if (p.bg === 'sunset') tex = backdrops.sunset;
     if (tex) {
       scene.background = tex;
+      scene.backgroundBlurriness = p.bgBlur ?? 0;
       scene.backgroundIntensity = p.bgInt;
     } else if (photo) {
       scene.background = photo;

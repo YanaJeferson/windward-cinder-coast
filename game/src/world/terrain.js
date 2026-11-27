@@ -54,7 +54,7 @@ export function sampleHeight(x, z) {
   const lx = (x - LAKE.x) / LAKE.rx;
   const lz = (z - LAKE.z) / LAKE.rz;
   const lakeDist = Math.sqrt(lx * lx + lz * lz);
-  const bowl = 1 - smoothstep(1.0, 1.2, lakeDist);
+  const bowl = 1 - smoothstep(0.97, 1.08, lakeDist);
   if (bowl > 0.001) h = lerp(h, 286, bowl * 0.985);
   // The caldera rim: a ring of sharp volcanic peaks beyond the bowl, with enough irregularity
   // that the skyline is a silhouette rather than a smooth dome.

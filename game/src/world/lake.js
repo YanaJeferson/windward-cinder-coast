@@ -11,9 +11,9 @@ export function createLake() {
   const uniforms = {
     uTime: { value: 0 },
     uSun: { value: sunDirection() },
-    uDeep: { value: new THREE.Color('#1b4b5e') },
-    uShallow: { value: new THREE.Color('#5aa9aa') },
-    uSky: { value: new THREE.Color('#ffb47a') },
+    uDeep: { value: new THREE.Color('#173f52') },
+    uShallow: { value: new THREE.Color('#4e9aa0') },
+    uSky: { value: new THREE.Color('#e0a184') },
     uSunColor: { value: new THREE.Color('#ffd6a0') },
   };
   const mat = new THREE.ShaderMaterial({
