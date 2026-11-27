@@ -146,8 +146,8 @@ const shadowTex = (() => {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 })();
 const shadowBlob = new THREE.Mesh(
-  new THREE.PlaneGeometry(22, 15),
-  new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.35 }),
+  new THREE.PlaneGeometry(18, 12),
+  new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }),
 );
 shadowBlob.rotation.x = -Math.PI / 2;
 shadowBlob.renderOrder = 2;
@@ -541,7 +541,7 @@ function updateWorld(dt) {
     const alt = flight.state.position.y - gh;
     shadowBlob.position.set(gx, gh + 0.28, gz);
     shadowBlob.visible = gh > 2 && alt < 320;
-    shadowBlob.material.opacity = Math.max(0.04, 0.42 - alt / 700);
+    shadowBlob.material.opacity = Math.max(0.06, 0.6 - alt / 620);
     const s = 1 + Math.min(alt / 260, 1.7);
     shadowBlob.scale.set(s, s, s);
   }
@@ -1079,7 +1079,7 @@ function stageShot(name) {
     cover: { mission: 2, position: [-1900, 515, 1700], heading: 318, speed: 60, roll: -0.1, pitch: 0.02, camera: 'hero', gate: 0 },
     cockpit: { mission: 2, position: [-1900, 512, 1700], heading: 318, speed: 57, roll: 0.0, pitch: 0.02, camera: 'cockpit', gate: 0 },
     canyon: { mission: 4, position: [canyonPoint(-1000), 0, -1000], heading: 358, speed: 72, roll: -0.05, pitch: 0.01, camera: 'chase', gate: 4 },
-    landing: { mission: 3, position: [-8, 66, 700], heading: 0, speed: 42, roll: 0.0, pitch: -0.05, camera: 'chase', gate: 4, gear: true, flaps: 2 },
+    landing: { mission: 3, position: [-8, 64, 570], heading: 0, speed: 41, roll: 0.0, pitch: -0.05, camera: 'chase', gate: 4, gear: true, flaps: 2 },
     storm: { mission: 7, position: [0, 210, 2300], heading: 0, speed: 60, roll: -0.04, pitch: 0.02, camera: 'hero', gate: 0 },
   };
   const setup = setups[name];
